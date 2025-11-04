@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Análise de Investimentos – FIFO + Histórico</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+<h1>📊 Sistema de Análise de Investimentos – FIFO + Histórico Completo</h1>
+
+<div class="controls">
+  <input type="file" id="excelFile" accept=".xlsx,.xls" onchange="loadExcel()" style="display:none;">
+  <button onclick="document.getElementById('excelFile').click()">📥 Importar Excel</button>
+  <button onclick="abrirModalTransacao()">➕ Nova Transação</button>
+  <button onclick="updateRealTimePrices()" id="updatePricesBtn" disabled>🔄 Atualizar Preços</button>
+  <button onclick="exportReport()" class="btn-export" id="exportBtn" disabled>📤 Exportar JSON</button>
+  <button onclick="exportExcel()" class="btn-export" id="exportExcelBtn" disabled>📥 Exportar XLSX</button>
+  <button onclick="fazerBackupBanco()" class="btn-export" title="Download do banco SQLite">💾 Backup BD</button>
+  <label>🏦 Caixa Renda Fixa (BRL): <input type="number" id="fixedIncomeInput" step="0.01" value="0"></label>
+</div>
+
+<div id="statusMessage" class="status-message info"></div>
+<div id="summaryCards" class="summary-cards"></div>
+
+<div class="tabs" id="tabs" style="display:none;">
+  <button class="tab-btn active" onclick="switchTab('resumo')">📊 Resumo</button>
+  <button class="tab-btn" onclick="switchTab('ativos')">📈 Ativos Atuais</button>
+  <button class="tab-btn" onclick="switchTab('todos')">📋 Todos os Ativos</button>
+  <button class="tab-btn" onclick="switchTab('trades')">💹 Trades Realizados</button>
+  <button class="tab-btn" onclick="switchTab('proventos')">💰 Proventos</button>
+  <button class="tab-btn" onclick="switchTab('rendafixa')">🏦 Renda Fixa</button>
+  <button class="tab-btn" onclick="switchTab('historico')">🔍 Histórico Completo</button>
+</div>
+
+<!-- ABA RESUMO -->
+<div id="resumo" class="tab-content active">
+  <div id="categoryChartContainer" style="display:none;margin-bottom:30px;background:#161b22;padding:20px;border-radius:10px;">
+    <h2>Composição da Carteira (Valor Atual)</h2>
+    <div style="position:relative;height:400px;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <div id="categorySummaryContainer" style="display:none;">
+    <h2>Resumo por Categoria</h2>
+    <div class="table-container">
+      <table>
+        <thead><tr>
+          <th>Categoria</th>
+          <th class="num-col">Qtd Ativos</th>
+          <th class="num-col">Valor Investido</th>
+          <th class="num-col">Valor Atual</th>
+          <th class="num-col">Lucro Realizado</th>
+          <th class="num-col">Lucro Aberto</th>
+          <th class="num-col">Lucro Total</th>
+          <th class="num-col">Rentabilidade</th>
+        </tr></thead>
+        <tbody id="categorySummaryBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="charts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px;">
+    <div id="profitChartContainer" style="display:none;background:#161b22;padding:20px;border-radius:10px;">
+      <h2>Lucro Realizado vs Aberto</h2>
+      <div style="position:relative;height:300px;">
+        <canvas id="profitChart"></canvas>
+      </div>
+    </div>
+    <div id="patrimonioChartContainer" style="display:none;background:#161b22;padding:20px;border-radius:10px;">
+      <h2>Composição do Patrimônio</h2>
+      <div style="position:relative;height:300px;">
+        <canvas id="patrimonioChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ABA ATIVOS ATUAIS -->
+<div id="ativos" class="tab-content">
+  <div class="filtro-container">
+    <div class="filter-group">
+      <label><strong>Categorias:</strong></label>
+      <div id="filterCategoryAtivosContainer" class="checkbox-group"></div>
+    </div>
+    <label>Ativo:
+      <input type="text" id="filterSymbolAtivos" placeholder="Ex: SBUB11" onkeyup="filterCurrentAssets()">
+    </label>
+    <button onclick="clearFiltersAtivos()">Limpar Filtros</button>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr>
+        <th>Ativo</th><th>Categoria</th><th class="num-col">Qtd Atual</th><th class="num-col">Qtd Comprada</th><th class="num-col">Qtd Vendida</th>
+        <th class="num-col">Preço Médio</th><th class="num-col">Preço Atual</th><th class="num-col">Custo Posição</th><th class="num-col">Valor Atual</th>
+        <th class="num-col">Lucro Realizado</th><th class="num-col">Lucro Aberto</th><th class="num-col">Lucro Total</th><th class="num-col">Rentabilidade</th>
+      </tr></thead>
+      <tbody id="assetsBody"></tbody>
+    </table>
+  </div>
+  <div id="paginationAtivos"></div>
+
+  <div class="details-section" id="detailsSection" style="display:none;">
+    <h2>📈 Detalhes por Ativo</h2>
+    <div id="assetDetails"></div>
+  </div>
+</div>
+
+<!-- ABA TODOS OS ATIVOS -->
+<div id="todos" class="tab-content">
+  <div class="filtro-container">
+    <div class="filter-group">
+      <label><strong>Categorias:</strong></label>
+      <div id="filterCategoryContainer" class="checkbox-group"></div>
+    </div>
+    <label>Ativo:
+      <input type="text" id="filterSymbol" placeholder="Ex: SBUB11" onkeyup="filterAllAssets()">
+    </label>
+    <button onclick="clearFiltersTodos()">Limpar Filtros</button>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead><tr>
+        <th>Ativo</th><th>Categoria</th><th class="num-col">Qtd Atual</th><th class="num-col">Qtd Comprada</th><th class="num-col">Qtd Vendida</th>
+        <th class="num-col">Preço Médio Compra</th><th class="num-col">Preço Médio Venda</th><th class="num-col">Total Investido</th><th class="num-col">Total Recuperado</th>
+        <th class="num-col">Lucro Realizado</th><th class="num-col">Lucro Aberto</th><th class="num-col">Valor Atual</th><th class="num-col">Lucro Total</th><th class="num-col">Rentabilidade Total</th>
+      </tr></thead>
+      <tbody id="allAssetsBody"></tbody>
+    </table>
+  </div>
+  <div id="paginationTodos"></div>
+</div>
+
+<!-- ABA TRADES REALIZADOS -->
+<div id="trades" class="tab-content">
+  <div class="filtro-container">
+    <label>Filtrar por ativo: <input type="text" id="filterAsset" placeholder="Ex: SBUB11" onkeyup="filterTrades()"></label>
+    <button onclick="document.getElementById('filterAsset').value=''; filterTrades();">Limpar Filtro</button>
+  </div>
+  <div id="tradesContainer"></div>
+</div>
+
+<!-- ABA PROVENTOS -->
+<div id="proventos" class="tab-content">
+  <div class="filtro-container">
+    <button onclick="abrirModalProvento()">➕ Adicionar Provento</button>
+    <label>Ativo:
+      <input type="text" id="filterProventoAtivo" placeholder="Ex: PETR4" onkeyup="filterProventos()">
+    </label>
+    <label>Tipo:
+      <select id="filterProventoTipo" onchange="filterProventos()">
+        <option value="">Todos</option>
+        <option value="Dividendo">Dividendo</option>
+        <option value="JCP">JCP</option>
+        <option value="Rendimento">Rendimento</option>
+      </select>
+    </label>
+    <label>Período:
+      <input type="date" id="filterProventoInicio" onchange="filterProventos()">
+      até
+      <input type="date" id="filterProventoFim" onchange="filterProventos()">
+    </label>
+    <button onclick="limparFiltrosProventos()">Limpar Filtros</button>
+    <button onclick="importarProventosExcel()" class="btn-export">📥 Importar Excel</button>
+  </div>
+
+  <div id="proventosSummaryCards" class="summary-cards"></div>
+
+  <div id="proventosChartContainer" style="display:none;margin-bottom:20px;background:#161b22;padding:20px;border-radius:10px;">
+    <h2>Proventos ao Longo do Tempo</h2>
+    <div style="position:relative;height:300px;">
+      <canvas id="proventosChart"></canvas>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Data Pagamento</th>
+          <th>Data COM</th>
+          <th>Ativo</th>
+          <th>Tipo</th>
+          <th class="num-col">Valor Unit.</th>
+          <th class="num-col">Quantidade</th>
+          <th class="num-col">Total</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="proventosBody"></tbody>
+    </table>
+  </div>
+  <div id="paginationProventos"></div>
+</div>
+
+<!-- ABA RENDA FIXA -->
+<div id="rendafixa" class="tab-content">
+  <div class="filtro-container">
+    <button onclick="abrirModalRendaFixa()">➕ Adicionar Investimento</button>
+    <button onclick="abrirModalTaxas()" style="background:#0969da;">⚙️ Configurar Taxas</button>
+    <label>Tipo:
+      <select id="filterRendaFixaTipo" onchange="filterRendaFixa()">
+        <option value="">Todos</option>
+        <option value="CDB">CDB</option>
+        <option value="LCI">LCI</option>
+        <option value="LCA">LCA</option>
+        <option value="Tesouro Selic">Tesouro Selic</option>
+        <option value="Tesouro IPCA+">Tesouro IPCA+</option>
+        <option value="Tesouro Prefixado">Tesouro Prefixado</option>
+      </select>
+    </label>
+    <label>Status:
+      <select id="filterRendaFixaStatus" onchange="filterRendaFixa()">
+        <option value="ativos">Ativos</option>
+        <option value="resgatados">Resgatados</option>
+        <option value="todos">Todos</option>
+      </select>
+    </label>
+    <button onclick="limparFiltrosRendaFixa()">Limpar Filtros</button>
+  </div>
+
+  <div id="rendaFixaSummaryCards" class="summary-cards"></div>
+
+  <div class="charts-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px;">
+    <div id="rendaFixaChartContainer" style="display:none;background:#161b22;padding:20px;border-radius:10px;">
+      <h2>Composição por Tipo</h2>
+      <div style="position:relative;height:300px;">
+        <canvas id="rendaFixaChart"></canvas>
+      </div>
+    </div>
+    <div id="rendaFixaProjecaoContainer" style="display:none;background:#161b22;padding:20px;border-radius:10px;">
+      <h2>Projeção 12 Meses</h2>
+      <div style="position:relative;height:300px;">
+        <canvas id="rendaFixaProjecaoChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Tipo</th>
+          <th>Instituição</th>
+          <th class="num-col">Investido</th>
+          <th class="num-col">Rentabilidade</th>
+          <th class="num-col">Rendimento</th>
+          <th class="num-col">Valor Atual</th>
+          <th class="num-col">Dias</th>
+          <th>Vencimento</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="rendaFixaBody"></tbody>
+    </table>
+  </div>
+  <div id="paginationRendaFixa"></div>
+</div>
+
+<!-- ABA HISTÓRICO COMPLETO -->
+<div id="historico" class="tab-content">
+  <div class="table-container">
+    <table id="transactionsTable">
+      <thead><tr>
+        <th>#</th><th>Data</th><th>Ativo</th><th>Tipo</th><th class="num-col">Qtd</th><th class="num-col">Preço Unit.</th>
+        <th class="num-col">Custos</th><th class="num-col">Total Transação</th><th>Categoria</th><th class="num-col">Qtd em Carteira</th>
+        <th class="num-col">Lucro Realizado Acum.</th><th class="num-col">Caixa Acumulado</th>
+      </tr></thead>
+      <tbody id="transactionsBody"></tbody>
+    </table>
+  </div>
+  <div id="paginationHistorico"></div>
+</div>
+
+</div>
+
+<!-- MODAL PROVENTO -->
+<div id="modalProvento" class="modal">
+  <div class="modal-content">
+    <h2 id="modalProventoTitulo">Adicionar Provento</h2>
+    <form id="formProvento" onsubmit="salvarProvento(event)">
+      <input type="hidden" id="proventoId">
+
+      <label>
+        Ativo *
+        <input type="text" id="proventoAtivo" required placeholder="Ex: PETR4" style="text-transform:uppercase">
+      </label>
+
+      <label>
+        Tipo *
+        <select id="proventoTipo" required>
+          <option value="">Selecione...</option>
+          <option value="Dividendo">Dividendo</option>
+          <option value="JCP">JCP (Juros sobre Capital Próprio)</option>
+          <option value="Rendimento">Rendimento</option>
+        </select>
+      </label>
+
+      <label>
+        Valor Unitário (R$) *
+        <input type="number" id="proventoValor" step="0.0001" required placeholder="0.00">
+      </label>
+
+      <label>
+        Quantidade de Ações *
+        <input type="number" id="proventoQtd" step="1" required placeholder="100">
+      </label>
+
+      <label>
+        Data COM *
+        <input type="date" id="proventoDataCom" required>
+      </label>
+
+      <label>
+        Data de Pagamento *
+        <input type="date" id="proventoDataPgto" required>
+      </label>
+
+      <div id="proventoTotal" style="padding:15px;background:#21262d;border-radius:6px;margin:10px 0;text-align:center;">
+        <strong>Total: R$ 0,00</strong>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" style="flex:1;">Salvar</button>
+        <button type="button" onclick="fecharModalProvento()" style="flex:1;background:#da3633;">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL RENDA FIXA -->
+<div id="modalRendaFixa" class="modal">
+  <div class="modal-content">
+    <h2 id="modalRendaFixaTitulo">Adicionar Investimento Renda Fixa</h2>
+    <form id="formRendaFixa" onsubmit="salvarRendaFixa(event)">
+      <input type="hidden" id="rendaFixaId">
+
+      <label>
+        Nome do Investimento *
+        <input type="text" id="rendaFixaNome" placeholder="Ex: CDB Banco Inter 110% CDI">
+      </label>
+
+      <label>
+        Tipo *
+        <select id="rendaFixaTipo" required onchange="atualizarCamposRendaFixa()">
+          <option value="">Selecione...</option>
+          <option value="CDB">CDB</option>
+          <option value="LCI">LCI (Isento de IR)</option>
+          <option value="LCA">LCA (Isento de IR)</option>
+          <option value="Tesouro Selic">Tesouro Selic</option>
+          <option value="Tesouro IPCA+">Tesouro IPCA+</option>
+          <option value="Tesouro Prefixado">Tesouro Prefixado</option>
+        </select>
+      </label>
+
+      <label>
+        Valor Investido (R$) *
+        <input type="number" id="rendaFixaValor" step="0.01" required placeholder="10000.00">
+      </label>
+
+      <label>
+        <span id="rendaFixaTaxaLabel">Taxa (% do CDI) *</span>
+        <input type="number" id="rendaFixaTaxa" step="0.01" required placeholder="110">
+        <small id="rendaFixaTaxaHelp" style="color:#8b949e;margin-top:5px;display:block;">
+          Para CDB: informe % do CDI (ex: 110 para 110% do CDI)
+        </small>
+      </label>
+
+      <label>
+        Data de Início *
+        <input type="date" id="rendaFixaDataInicio" required>
+      </label>
+
+      <label>
+        Data de Vencimento
+        <input type="date" id="rendaFixaDataVenc">
+      </label>
+
+      <label>
+        Liquidez
+        <select id="rendaFixaLiquidez">
+          <option value="Diária">Liquidez Diária</option>
+          <option value="Vencimento">Apenas no Vencimento</option>
+        </select>
+      </label>
+
+      <label>
+        Instituição Financeira
+        <input type="text" id="rendaFixaInstituicao" placeholder="Ex: Banco Inter">
+      </label>
+
+      <label>
+        Observações
+        <textarea id="rendaFixaObs" rows="3" placeholder="Informações adicionais..."></textarea>
+      </label>
+
+      <div id="rendaFixaPreview" style="display:none;padding:15px;background:#21262d;border-radius:6px;margin:10px 0;">
+        <h4 style="margin-top:0;color:#58a6ff;">📊 Projeção Atual</h4>
+        <div id="rendaFixaPreviewContent"></div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" style="flex:1;">Salvar</button>
+        <button type="button" onclick="fecharModalRendaFixa()" style="flex:1;background:#da3633;">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL CONFIGURAR TAXAS -->
+<div id="modalTaxas" class="modal">
+  <div class="modal-content">
+    <h2>⚙️ Configurar Taxas de Referência</h2>
+    <form id="formTaxas" onsubmit="salvarTaxas(event)">
+      <p style="color:#8b949e;margin-bottom:15px;">
+        Atualize as taxas de referência para cálculos mais precisos.
+      </p>
+
+      <label>
+        CDI (% ao ano)
+        <input type="number" id="taxaCDI" step="0.01" required placeholder="11.65">
+        <small style="color:#8b949e;display:block;margin-top:5px;">
+          Taxa atual do CDI (Certificado de Depósito Interbancário)
+        </small>
+      </label>
+
+      <label>
+        Selic (% ao ano)
+        <input type="number" id="taxaSelic" step="0.01" required placeholder="11.75">
+        <small style="color:#8b949e;display:block;margin-top:5px;">
+          Taxa básica de juros (Selic)
+        </small>
+      </label>
+
+      <label>
+        IPCA (% ao ano)
+        <input type="number" id="taxaIPCA" step="0.01" required placeholder="4.62">
+        <small style="color:#8b949e;display:block;margin-top:5px;">
+          Índice de inflação acumulado (últimos 12 meses)
+        </small>
+      </label>
+
+      <div style="background:#21262d;padding:12px;border-radius:6px;margin:15px 0;">
+        <small style="color:#8b949e;">
+          💡 <strong>Dica:</strong> Consulte as taxas atuais em:
+          <a href="https://www.bcb.gov.br" target="_blank" style="color:#58a6ff;">Banco Central</a>
+        </small>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" style="flex:1;">Salvar Taxas</button>
+        <button type="button" onclick="fecharModalTaxas()" style="flex:1;background:#8b949e;">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL NOVA TRANSAÇÃO -->
+<div id="modalTransacao" class="modal">
+  <div class="modal-content">
+    <h2 id="modalTransacaoTitulo">➕ Nova Transação</h2>
+    <form id="formTransacao" onsubmit="salvarTransacao(event)">
+      <input type="hidden" id="transacaoId">
+
+      <label>
+        Data da Operação *
+        <input type="date" id="transacaoData" required>
+      </label>
+
+      <label>
+        Código do Ativo *
+        <input type="text" id="transacaoAtivo" required placeholder="Ex: PETR4, BBDC4" style="text-transform:uppercase;">
+        <small style="color:#8b949e;display:block;margin-top:5px;">
+          Digite o código do ativo (ex: PETR4 para Petrobras)
+        </small>
+      </label>
+
+      <label>
+        Tipo de Operação *
+        <select id="transacaoTipo" required>
+          <option value="">Selecione...</option>
+          <option value="C">Compra</option>
+          <option value="V">Venda</option>
+        </select>
+      </label>
+
+      <label>
+        Quantidade *
+        <input type="number" id="transacaoQtd" step="0.01" required placeholder="100">
+      </label>
+
+      <label>
+        Preço Unitário (R$) *
+        <input type="number" id="transacaoPreco" step="0.01" required placeholder="38.50">
+      </label>
+
+      <label>
+        Custos/Taxas (R$)
+        <input type="number" id="transacaoCustos" step="0.01" placeholder="10.00" value="0">
+        <small style="color:#8b949e;display:block;margin-top:5px;">
+          Corretagem, emolumentos, etc.
+        </small>
+      </label>
+
+      <label>
+        Categoria
+        <select id="transacaoCategoria">
+          <option value="">Selecione...</option>
+          <option value="Ações">Ações</option>
+          <option value="FIIs">FIIs (Fundos Imobiliários)</option>
+          <option value="ETFs">ETFs</option>
+          <option value="BDRs">BDRs</option>
+          <option value="Stocks">Stocks (Ações Internacionais)</option>
+          <option value="REITs">REITs</option>
+          <option value="Cripto">Criptomoedas</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </label>
+
+      <label>
+        Observações
+        <textarea id="transacaoObs" rows="2" placeholder="Informações adicionais..."></textarea>
+      </label>
+
+      <div id="transacaoPreview" style="padding:12px;background:#21262d;border-radius:6px;margin:10px 0;border-left:3px solid #58a6ff;">
+        <strong style="color:#58a6ff;">💡 Resumo da Operação:</strong>
+        <div id="transacaoPreviewContent" style="color:#8b949e;margin-top:8px;font-size:0.9em;">
+          Preencha os campos para ver o resumo
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" style="flex:1;">Salvar Transação</button>
+        <button type="button" onclick="fecharModalTransacao()" style="flex:1;background:#da3633;">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Input file oculto para importação -->
+<input type="file" id="proventosFileInput" accept=".xlsx,.xls" style="display:none;">
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

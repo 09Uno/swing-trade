@@ -1,0 +1,116 @@
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Segoe UI",sans-serif;background:#0d1117;color:#e6edf3;padding:20px;line-height:1.6;}
+.container{max-width:1800px;margin:auto;}
+h1{text-align:center;color:#58a6ff;margin-bottom:25px;font-size:2em;}
+h2{color:#58a6ff;margin-top:25px;margin-bottom:15px;border-bottom:2px solid#30363d;padding-bottom:10px;}
+h3{color:#79c0ff;margin:15px 0 10px 0;}
+h4{color:#79c0ff;margin:10px 0 8px 0;font-size:.95em;}
+.controls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center;margin-bottom:25px;padding:15px;background:#161b22;border-radius:10px;}
+button{background:#238636;color:#fff;padding:10px 18px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;transition:all .3s;}
+button:hover{background:#2ea043;transform:translateY(-2px);}
+.btn-export{background:#0969da;}
+.btn-export:hover{background:#1f6feb;}
+input{background:#161b22;color:#fff;border:1px solid #30363d;border-radius:5px;padding:8px;min-width:100px;}
+input:focus{outline:none;border-color:#58a6ff;}
+.status-message{text-align:center;padding:12px;border-radius:6px;margin-bottom:10px;display:none;font-weight:bold;}
+.status-message.info{background:#0d419d;color:#58a6ff;border-left:4px solid #58a6ff;}
+.status-message.success{background:#042f14;color:#2ecc71;border-left:4px solid #2ecc71;}
+.status-message.error{background:#3c0f0f;color:#ff7878;border-left:4px solid #ff7878;}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:30px;}
+.card{background:#161b22;padding:15px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.4);border-left:4px solid #30363d;}
+.card h3{font-size:.9em;color:#8b949e;margin-bottom:6px;text-transform:uppercase;font-weight:600;}
+.card .value{font-size:1.5em;font-weight:bold;}
+.card.positive{border-left-color:#2ecc71;}
+.card.positive .value{color:#2ecc71;}
+.card.negative{border-left-color:#e74c3c;}
+.card.negative .value{color:#e74c3c;}
+.card.neutral{border-left-color:#58a6ff;}
+.stat-card{background:#161b22;padding:15px;border-radius:10px;box-shadow:0 0 10px rgba(0,0,0,.4);border-left:4px solid #30363d;}
+.stat-card .stat-label{font-size:.9em;color:#8b949e;margin-bottom:6px;text-transform:uppercase;font-weight:600;}
+.stat-card .stat-value{font-size:1.5em;font-weight:bold;}
+.table-container{overflow-x:auto;margin-bottom:30px;border-radius:8px;background:#161b22;box-shadow:0 0 10px rgba(0,0,0,.4);}
+table{width:100%;border-collapse:collapse;}
+th{background:#21262d;color:#58a6ff;padding:12px;font-weight:600;text-align:left;border-bottom:2px solid #30363d;}
+td{padding:10px 12px;border-bottom:1px solid #30363d;text-align:left;}
+tr:hover{background:#21262d;transition:background .2s;}
+.price-input{width:100px;text-align:right;padding:6px;background:#0d1117;border:1px solid #30363d;border-radius:4px;color:#fff;}
+.profit{color:#2ecc71;font-weight:bold;}
+.loss{color:#e74c3c;font-weight:bold;}
+.neutral{color:#79c0ff;}
+.details-section{background:#161b22;padding:20px;border-radius:10px;margin-bottom:30px;box-shadow:0 0 10px rgba(0,0,0,.4);}
+.asset-details{background:#0d1117;padding:15px;border-radius:8px;margin-bottom:15px;border-left:4px solid #238636;}
+.asset-details h3{margin-top:0;color:#58a6ff;}
+.asset-details.loss{border-left-color:#e74c3c;}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px;}
+.detail-item{background:#21262d;padding:12px;border-radius:6px;border-left:2px solid #30363d;}
+.detail-item .label{font-size:.85em;color:#8b949e;text-transform:uppercase;margin-bottom:4px;}
+.detail-item .value{font-size:1.1em;font-weight:bold;color:#e6edf3;word-break:break-word;font-family:monospace;}
+.detail-item.profit .value{color:#2ecc71;}
+.detail-item.loss .value{color:#e74c3c;}
+.trades-section{background:#0d1117;padding:15px;border-radius:8px;margin-top:15px;border:1px solid #30363d;}
+.trades-section h4{color:#79c0ff;margin-bottom:10px;font-size:.95em;}
+.trade-item{background:#161b22;padding:12px;margin:8px 0;border-radius:5px;font-size:.9em;border-left:3px solid #238636;}
+.trade-item.profit-trade{border-left-color:#2ecc71;}
+.trade-item.loss-trade{border-left-color:#e74c3c;}
+canvas{max-width:500px!important;height:100%!important;margin:0 auto!important;display:block!important;}
+.tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
+.tab-btn{background:#21262d;color:#8b949e;padding:10px 15px;border:none;border-radius:6px;cursor:pointer;border-bottom:2px solid transparent;transition:all .3s;}
+.tab-btn.active{background:#238636;color:#fff;border-bottom-color:#2ecc71;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+.filtro-container{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-start;background:#161b22;padding:15px;border-radius:8px;}
+.filter-group{display:flex;flex-direction:column;gap:8px;}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:8px;max-width:700px;}
+.checkbox-group label{display:flex;align-items:center;gap:6px;background:#21262d;padding:8px 14px;border-radius:6px;cursor:pointer;transition:all .2s;font-size:.9em;border:1px solid transparent;}
+.checkbox-group label:hover{background:#30363d;border-color:#58a6ff;}
+.checkbox-group input[type="checkbox"]{cursor:pointer;width:16px;height:16px;accent-color:#238636;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:15px;}
+.stat-box{background:#21262d;padding:10px;border-radius:6px;text-align:center;}
+.stat-label{font-size:.85em;color:#8b949e;margin-bottom:5px;}
+.stat-value{font-size:1.2em;font-weight:bold;}
+.num-col{text-align:right;font-family:monospace;}
+.trades-list{margin-top:15px;}
+.trade-detail{background:#161b22;padding:15px;margin:12px 0;border-radius:8px;border-left:4px solid #30363d;font-size:.9em;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.trade-detail.profit{border-left-color:#2ecc71;}
+.trade-detail.loss{border-left-color:#e74c3c;}
+.trade-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #30363d;}
+.trade-number{background:#21262d;padding:4px 10px;border-radius:4px;font-weight:bold;color:#8b949e;font-size:.85em;}
+.trade-dates{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.trade-duration{color:#8b949e;font-size:.85em;font-style:italic;}
+.trade-info{display:flex;flex-direction:column;gap:8px;}
+.trade-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;}
+.trade-row.highlight{background:#21262d;padding:8px 12px;border-radius:4px;margin-top:8px;font-size:1.05em;}
+.trade-total{color:#8b949e;font-size:.9em;margin-left:8px;}
+.trade-percent{color:#8b949e;font-size:.9em;margin-left:4px;}
+.badge{display:inline-block;padding:4px 8px;border-radius:4px;font-size:.8em;font-weight:bold;}
+.badge.buy{background:#238636;color:#fff;}
+.badge.sell{background:#da3633;color:#fff;}
+.badge-dividendo{background:#2ecc71;color:#fff;}
+.badge-jcp{background:#3498db;color:#fff;}
+.badge-rendimento{background:#f1c40f;color:#0d1117;}
+.badge-ativo{background:#238636;color:#fff;}
+.badge-resgatado{background:#6e7681;color:#fff;}
+.btn-icon{background:transparent;border:none;cursor:pointer;font-size:1.1em;padding:5px;transition:transform .2s;}
+.btn-icon:hover{transform:scale(1.2);}
+.pagination-container{display:flex;justify-content:space-between;align-items:center;margin-top:20px;padding:15px;background:#161b22;border-radius:8px;flex-wrap:wrap;gap:15px;}
+.pagination-info{color:#8b949e;font-size:.9em;}
+.pagination-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.pagination-btn{background:#21262d;color:#e6edf3;padding:8px 16px;border:1px solid #30363d;border-radius:6px;cursor:pointer;transition:all .2s;font-size:.9em;}
+.pagination-btn:hover:not(:disabled){background:#30363d;border-color:#58a6ff;}
+.pagination-btn:disabled{opacity:.5;cursor:not-allowed;}
+.pagination-pages{display:flex;gap:5px;}
+.pagination-page{background:#21262d;color:#e6edf3;padding:6px 12px;border:1px solid #30363d;border-radius:5px;cursor:pointer;transition:all .2s;font-size:.9em;min-width:40px;text-align:center;}
+.pagination-page:hover{background:#30363d;border-color:#58a6ff;}
+.pagination-page.active{background:#238636;color:#fff;border-color:#2ecc71;font-weight:bold;}
+.pagination-ellipsis{padding:6px 8px;color:#8b949e;font-size:.9em;}
+.pagination-per-page label{display:flex;align-items:center;gap:8px;color:#8b949e;font-size:.9em;}
+.pagination-per-page select{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:5px;padding:6px 10px;cursor:pointer;font-size:.9em;}
+.pagination-per-page select:focus{outline:none;border-color:#58a6ff;}
+/* Modal styles for future features */
+.modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background-color:rgba(0,0,0,0.7);overflow:auto;}
+.modal-content{background-color:#161b22;margin:5% auto;padding:30px;border:1px solid #30363d;border-radius:10px;width:90%;max-width:600px;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.modal-content h2{margin-top:0;color:#58a6ff;}
+.modal-content form{display:flex;flex-direction:column;gap:15px;}
+.modal-content label{display:flex;flex-direction:column;gap:5px;color:#e6edf3;}
+.modal-content input,.modal-content select{background:#21262d;color:#e6edf3;border:1px solid #30363d;padding:10px;border-radius:5px;}
+.modal-content button{margin-top:10px;}
