@@ -715,6 +715,70 @@
   </div>
 </div>
 
+<script>
+// Verificação de autenticação - OBRIGATÓRIA
+(function() {
+  const isAuthenticated = localStorage.getItem('isAuthenticated');
+  const authToken = localStorage.getItem('authToken');
+  
+  // SEMPRE requer login com token válido
+  if (!isAuthenticated || !authToken) {
+    localStorage.clear();
+    window.location.href = 'login.html';
+    return;
+  }
+
+  // Verifica se o token ainda é válido
+  const API_URL = 'http://localhost:3000/api';
+  fetch(API_URL + '/auth/verify', {
+    headers: {
+      'Authorization': 'Bearer ' + authToken
+    }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data.valid) {
+      // Token inválido, faz logout
+      localStorage.clear();
+      alert('Sessão expirada. Faça login novamente.');
+      window.location.href = 'login.html';
+    }
+  })
+  .catch(err => {
+    console.error('Erro ao verificar token:', err);
+    localStorage.clear();
+    alert('Erro ao verificar autenticação. Faça login novamente.');
+    window.location.href = 'login.html';
+  });
+
+  // Adiciona botão de logout e informações do usuário
+  const currentUser = localStorage.getItem('currentUser');
+  if (currentUser) {
+    const toolbar = document.querySelector('.toolbar .toolbar-section:last-child');
+    if (toolbar) {
+      // Mostra nome do usuário
+      const userInfo = document.createElement('span');
+      userInfo.style.marginRight = '10px';
+      userInfo.style.color = 'var(--text-secondary)';
+      userInfo.textContent = '👤 ' + currentUser;
+      toolbar.appendChild(userInfo);
+
+      // Botão de logout
+      const logoutBtn = document.createElement('button');
+      logoutBtn.className = 'btn btn-danger';
+      logoutBtn.textContent = '🚪 Sair';
+      logoutBtn.onclick = function() {
+        if (confirm('Deseja realmente sair?')) {
+          localStorage.clear();
+          window.location.href = 'login.html';
+        }
+      };
+      toolbar.appendChild(logoutBtn);
+    }
+  }
+})();
+</script>
+
 <script type="module" src="js/main.js"></script>
 <script src="js/cadastro-lote.js"></script>
 </body>

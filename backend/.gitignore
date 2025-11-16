@@ -5,10 +5,10 @@ package-lock.json
 # Variáveis de ambiente
 .env
 
-# Banco de dados SQLite
-database/*.db
-database/*.db-shm
-database/*.db-wal
+# Banco de dados SQLite (comentado para permitir deploy)
+# database/*.db
+# database/*.db-shm
+# database/*.db-wal
 
 # Logs
 logs/

@@ -11,6 +11,8 @@ import proventosRouter from './src/routes/proventos.js';
 import rendaFixaRouter from './src/routes/rendaFixa.js';
 import summaryRouter from './src/routes/summary.js';
 import backupRouter from './src/routes/backup.js';
+import authRouter from './src/routes/auth.js';
+import { initAdminUser } from './src/config/initUser.js';
 
 dotenv.config();
 
@@ -31,6 +33,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..')));
 
 // Rotas
+app.use('/api/auth', authRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/proventos', proventosRouter);
 app.use('/api/renda-fixa', rendaFixaRouter);
@@ -65,6 +68,9 @@ async function startServer() {
     // Sincroniza models (cria tabelas se não existirem)
     await sequelize.sync({ alter: true });
     console.log('✅ Tabelas sincronizadas');
+
+    // Inicializa usuário administrador
+    await initAdminUser();
 
     // Inicia servidor
     app.listen(PORT, () => {
