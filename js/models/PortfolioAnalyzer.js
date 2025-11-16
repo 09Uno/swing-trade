@@ -13,11 +13,20 @@ export class PortfolioAnalyzer{
   processFIFO(){
     // Função para converter data brasileira DD/MM/YYYY
     const parseDate=(dateStr)=>{
-      const parts=dateStr.split('/');
-      if(parts.length===3){
-        // DD/MM/YYYY -> YYYY-MM-DD
-        return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+      // Se já for um Date object, retorna direto
+      if(dateStr instanceof Date) return dateStr;
+      
+      // Se for string, converte
+      if(typeof dateStr === 'string') {
+        const parts=dateStr.split('/');
+        if(parts.length===3){
+          // DD/MM/YYYY -> YYYY-MM-DD
+          return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+        }
+        return new Date(dateStr);
       }
+      
+      // Fallback: tenta criar Date do valor
       return new Date(dateStr);
     };
 
