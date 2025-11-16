@@ -161,7 +161,15 @@ export async function editarTransacao(id) {
 
 // Excluir transação
 export async function excluirTransacaoUI(id) {
-  if (!confirm('Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.')) {
+  const confirmed = await window.customConfirm({
+    title: '🗑️ Excluir Transação',
+    message: 'Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.',
+    type: 'danger',
+    confirmText: 'Excluir',
+    cancelText: 'Cancelar'
+  });
+
+  if (!confirmed) {
     return;
   }
 

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio Manager - Swing Trade</title>
+  <link rel="stylesheet" href="styles-new.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Biblioteca XLSX para importar/exportar Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- HEADER -->
+    <header class="app-header">
+      <h1 class="app-title">📈 Portfolio Manager</h1>
+      <p class="app-subtitle">Gestão inteligente de investimentos em Swing Trade</p>
+    </header>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="toolbar-section">
+        <button class="btn btn-primary" onclick="openBatchModal()">
+          ➕ Cadastro em Lote
+        </button>
+        <button class="btn btn-success" onclick="openSingleTransactionModal()">
+          📝 Nova Transação
+        </button>
+        <button class="btn btn-secondary" onclick="importExcel()">
+          📥 Importar Excel
+        </button>
+      </div>
+      <div class="toolbar-section">
+        <button class="btn btn-secondary" onclick="updatePrices()">
+          🔄 Atualizar Preços
+        </button>
+        <button class="btn btn-secondary" onclick="exportData()">
+          📤 Exportar
+        </button>
+      </div>
+    </div>
+
+    <!-- STATUS MESSAGE -->
+    <div id="statusMessage" class="status-message hidden"></div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="summary-grid" id="summaryCards">
+      <!-- Cards serão inseridos aqui via JS -->
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+      <button class="tab-btn" onclick="switchTab('ativos')">💼 Ativos</button>
+      <button class="tab-btn" onclick="switchTab('transacoes')">📋 Transações</button>
+      <button class="tab-btn" onclick="switchTab('proventos')">💰 Proventos</button>
+      <button class="tab-btn" onclick="switchTab('rendaFixa')">🏦 Renda Fixa</button>
+    </div>
+
+    <!-- TAB: DASHBOARD -->
+    <div id="dashboard" class="tab-content active">
+      <div class="table-section">
+        <div class="section-header">
+          <h2 class="section-title">📊 Visão Geral da Carteira</h2>
+        </div>
+        <div id="dashboardContent">
+          <!-- Gráficos e tabelas resumo -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: ATIVOS -->
+    <div id="ativos" class="tab-content">
+      <div class="table-section">
+        <div class="section-header">
+          <h2 class="section-title">💼 Meus Ativos</h2>
+          <button class="btn btn-secondary btn-sm" onclick="filterAtivos()">🔍 Filtrar</button>
+        </div>
+        <div class="spreadsheet-wrapper">
+          <table class="spreadsheet-table">
+            <thead>
+              <tr>
+                <th>Ativo</th>
+                <th>Categoria</th>
+                <th class="text-right">Quantidade</th>
+                <th class="text-right">Preço Médio</th>
+                <th class="text-right">Preço Atual</th>
+                <th class="text-right">Valor Total</th>
+                <th class="text-right">Lucro/Prejuízo</th>
+                <th class="text-right">%</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ativosTableBody">
+              <!-- Linhas serão inseridas via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: TRANSAÇÕES -->
+    <div id="transacoes" class="tab-content">
+      <div class="table-section">
+        <div class="section-header">
+          <h2 class="section-title">📋 Histórico de Transações</h2>
+        </div>
+        <div class="spreadsheet-wrapper">
+          <table class="spreadsheet-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ativo</th>
+                <th>Tipo</th>
+                <th class="text-right">Quantidade</th>
+                <th class="text-right">Preço</th>
+                <th class="text-right">Custos</th>
+                <th class="text-right">Total</th>
+                <th>Categoria</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="transacoesTableBody">
+              <!-- Linhas serão inseridas via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: PROVENTOS -->
+    <div id="proventos" class="tab-content">
+      <div class="table-section">
+        <div class="section-header">
+          <h2 class="section-title">💰 Proventos Recebidos</h2>
+          <button class="btn btn-success btn-sm" onclick="addProvento()">➕ Adicionar</button>
+        </div>
+        <div id="proventosContent">
+          <!-- Conteúdo de proventos -->
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: RENDA FIXA -->
+    <div id="rendaFixa" class="tab-content">
+      <div class="table-section">
+        <div class="section-header">
+          <h2 class="section-title">🏦 Renda Fixa</h2>
+          <button class="btn btn-success btn-sm" onclick="addRendaFixa()">➕ Adicionar</button>
+        </div>
+        <div id="rendaFixaContent">
+          <!-- Conteúdo de renda fixa -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CADASTRO EM LOTE -->
+  <div id="batchModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">➕ Cadastro em Lote de Transações</h2>
+        <button class="btn-icon" onclick="closeBatchModal()">✕</button>
+      </div>
+
+      <div class="status-message info">
+        💡 Preencha as transações abaixo. Clique em "Adicionar Linha" para mais operações.
+      </div>
+
+      <div class="spreadsheet-wrapper">
+        <table class="spreadsheet-table" id="batchTable">
+          <thead>
+            <tr>
+              <th style="width: 120px;">Data</th>
+              <th style="width: 100px;">Ativo</th>
+              <th style="width: 80px;">Tipo</th>
+              <th style="width: 100px;">Quantidade</th>
+              <th style="width: 100px;">Preço (R$)</th>
+              <th style="width: 100px;">Custos (R$)</th>
+              <th style="width: 120px;">Categoria</th>
+              <th style="width: 60px;">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody">
+            <!-- Linhas iniciais -->
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top: 1rem;">
+        <button class="btn btn-secondary" onclick="addBatchRow()">➕ Adicionar Linha</button>
+        <button class="btn btn-secondary" onclick="clearBatchTable()">🗑️ Limpar Tudo</button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeBatchModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveBatchTransactions()">💾 Salvar Todas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TRANSAÇÃO ÚNICA -->
+  <div id="singleTransactionModal" class="modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <div class="modal-header">
+        <h2 class="modal-title">📝 Nova Transação</h2>
+        <button class="btn-icon" onclick="closeSingleTransactionModal()">✕</button>
+      </div>
+
+      <form id="singleTransactionForm">
+        <div class="form-group">
+          <label class="form-label">Data da Operação</label>
+          <input type="date" class="form-input" id="singleDate" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Código do Ativo</label>
+          <input type="text" class="form-input" id="singleAtivo" placeholder="Ex: PETR4" required style="text-transform: uppercase;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" id="singleTipo" required>
+            <option value="">Selecione...</option>
+            <option value="C">Compra</option>
+            <option value="V">Venda</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Quantidade</label>
+          <input type="number" class="form-input" id="singleQtd" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Preço Unitário (R$)</label>
+          <input type="number" class="form-input" id="singlePreco" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Custos/Taxas (R$)</label>
+          <input type="number" class="form-input" id="singleCustos" step="0.01" value="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Categoria</label>
+          <select class="form-select" id="singleCategoria">
+            <option value="">Selecione...</option>
+            <option value="Ações">Ações</option>
+            <option value="FIIs">FIIs</option>
+            <option value="ETFs">ETFs</option>
+            <option value="BDRs">BDRs</option>
+            <option value="Stocks">Stocks</option>
+            <option value="REITs">REITs</option>
+            <option value="Cripto">Criptomoedas</option>
+            <option value="Outros">Outros</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSingleTransactionModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveSingleTransaction()">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROVENTOS -->
+  <div id="proventosModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+      <div class="modal-header">
+        <h2 class="modal-title">💰 Adicionar Provento</h2>
+        <button class="btn-icon" onclick="closeProventosModal()" title="Fechar">✕</button>
+      </div>
+
+      <form id="proventosForm">
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Ativo *</label>
+            <input type="text" class="form-input input-uppercase" id="proventoAtivo" placeholder="Ex: PETR4" title="Código do ativo" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tipo *</label>
+            <select class="form-select" id="proventoTipo" title="Tipo de provento" required>
+              <option value="">Selecione...</option>
+              <option value="Dividendo">💵 Dividendo</option>
+              <option value="JCP">📊 JCP</option>
+              <option value="Rendimento">💰 Rendimento</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Valor Unitário (R$) *</label>
+            <input type="number" class="form-input" id="proventoValorUnitario" step="0.0001" required placeholder="0.00" title="Valor por ação" oninput="calcularTotalProvento()">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Quantidade de Ações *</label>
+            <input type="number" class="form-input" id="proventoQuantidade" step="1" required placeholder="100" title="Quantas ações você tinha" oninput="calcularTotalProvento()">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Data COM *</label>
+            <input type="date" class="form-input" id="proventoDataCom" required title="Data em que tinha as ações">
+            <small class="form-help">Data em que tinha as ações</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Data de Pagamento *</label>
+            <input type="date" class="form-input" id="proventoDataPagamento" required title="Data do recebimento">
+            <small class="form-help">Data que recebeu o valor</small>
+          </div>
+        </div>
+
+        <div class="form-total-box">
+          <div class="form-total-label">Total a Receber</div>
+          <div class="form-total-value" id="proventoTotalValue">R$ 0,00</div>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeProventosModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveProvento()">💾 Salvar Provento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: RENDA FIXA -->
+  <div id="rendaFixaModal" class="modal">
+    <div class="modal-content" style="max-width: 800px;">
+      <div class="modal-header">
+        <h2 class="modal-title">🏦 Adicionar Investimento Renda Fixa</h2>
+        <button class="btn-icon" onclick="closeRendaFixaModal()" title="Fechar">✕</button>
+      </div>
+
+      <form id="rendaFixaForm">
+        <div class="form-grid">
+          <div class="form-group form-grid-full-width">
+            <label class="form-label">Nome do Investimento *</label>
+            <input type="text" class="form-input" id="rendaFixaNome" placeholder="Ex: CDB Banco Inter 110% CDI" title="Nome descritivo do investimento" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tipo *</label>
+            <select class="form-select" id="rendaFixaTipo" title="Tipo de investimento renda fixa" required onchange="atualizarCamposRendaFixa()">
+              <option value="">Selecione...</option>
+              <option value="CDB">🏦 CDB</option>
+              <option value="LCI">🏠 LCI (Isento de IR)</option>
+              <option value="LCA">🌾 LCA (Isento de IR)</option>
+              <option value="Tesouro Selic">📊 Tesouro Selic</option>
+              <option value="Tesouro IPCA+">📈 Tesouro IPCA+</option>
+              <option value="Tesouro Prefixado">📉 Tesouro Prefixado</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Instituição Financeira</label>
+            <input type="text" class="form-input" id="rendaFixaInstituicao" placeholder="Ex: Banco Inter" title="Qual banco ou instituição">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Valor Investido (R$) *</label>
+            <input type="number" class="form-input" id="rendaFixaValor" step="0.01" required placeholder="10000.00" title="Valor inicial investido" oninput="atualizarPreviewRendaFixa()">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" id="rendaFixaTaxaLabel">Taxa (% do CDI) *</label>
+            <input type="number" class="form-input" id="rendaFixaTaxa" step="0.01" required placeholder="110" title="Taxa de rendimento" oninput="atualizarPreviewRendaFixa()">
+            <small id="rendaFixaTaxaHelp" class="form-help">Para CDB/LCI/LCA: % do CDI (ex: 110)</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Data de Início *</label>
+            <input type="date" class="form-input" id="rendaFixaDataInicio" required title="Quando começou o investimento" oninput="atualizarPreviewRendaFixa()">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Data de Vencimento</label>
+            <input type="date" class="form-input" id="rendaFixaDataVencimento" title="Data do vencimento" oninput="atualizarPreviewRendaFixa()">
+            <small class="form-help">Deixe em branco se não houver</small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Liquidez</label>
+            <select class="form-select" id="rendaFixaLiquidez" title="Tipo de liquidez">
+              <option value="Diária">💧 Liquidez Diária</option>
+              <option value="Vencimento">🔒 Apenas no Vencimento</option>
+            </select>
+          </div>
+
+          <div class="form-group form-grid-full-width">
+            <label class="form-label">Observações</label>
+            <textarea class="form-input form-textarea" id="rendaFixaObs" rows="2" placeholder="Informações adicionais..." title="Notas adicionais"></textarea>
+          </div>
+        </div>
+
+        <div id="rendaFixaPreview" class="form-preview">
+          <h4 class="form-preview-title">📊 Projeção Atual</h4>
+          <div id="rendaFixaPreviewContent" class="form-preview-grid"></div>
+        </div>
+      </form>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeRendaFixaModal()">Cancelar</button>
+        <button class="btn btn-success" onclick="saveRendaFixa()">💾 Salvar Investimento</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/app-new.js"></script>
+</body>
+</html>

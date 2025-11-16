@@ -97,19 +97,19 @@ export function editarProventoModal(id) {
   abrirModalProvento(id);
 }
 
-export function excluirProventoConfirm(id) {
+export async function excluirProventoConfirm(id) {
   const provento = proventosManager.proventos.find(p => p.id === id);
   if (!provento) return;
 
-  const confirma = confirm(
-    `Deseja realmente excluir este provento?\n\n` +
-    `Ativo: ${provento.ativo}\n` +
-    `Tipo: ${provento.tipo}\n` +
-    `Total: ${formatCurrency(provento.total)}\n` +
-    `Data: ${new Date(provento.dataPagamento).toLocaleDateString('pt-BR')}`
-  );
+  const confirmed = await window.customConfirm({
+    title: '🗑️ Excluir Provento',
+    message: `Deseja realmente excluir este provento?\n\nAtivo: ${provento.ativo}\nTipo: ${provento.tipo}\nTotal: ${formatCurrency(provento.total)}\nData: ${new Date(provento.dataPagamento).toLocaleDateString('pt-BR')}`,
+    type: 'danger',
+    confirmText: 'Excluir',
+    cancelText: 'Cancelar'
+  });
 
-  if (confirma) {
+  if (confirmed) {
     proventosManager.excluirProvento(id);
     showStatus('✅ Provento excluído com sucesso!', 'success');
     atualizarListaProventos();
@@ -194,8 +194,15 @@ function atualizarTotalModal() {
   const qtd = parseFloat(document.getElementById('proventoQtd').value) || 0;
   const total = valor * qtd;
 
-  document.getElementById('proventoTotal').innerHTML =
-    `<strong>Total: ${formatCurrency(total)}</strong>`;
+  document.getElementById('proventoTotal').innerHTML = `
+    <div style="color:#8b949e;font-size:12px;margin-bottom:5px;">Total a Receber</div>
+    <div style="color:#2ecc71;font-size:20px;font-weight:600;">${formatCurrency(total)}</div>
+  `;
+}
+
+// Alias para compatibilidade
+export function calcularTotalProvento() {
+  atualizarTotalModal();
 }
 
 // Event listeners para atualizar total no modal
@@ -219,6 +226,24 @@ window.salvarProvento = salvarProvento;
 window.editarProventoModal = editarProventoModal;
 window.excluirProventoConfirm = excluirProventoConfirm;
 window.importarProventosExcel = importarProventosExcel;
+window.calcularTotalProvento = calcularTotalProvento;
+window.filterProventos = () => {
+  const proventos = proventosManager.getProventos();
+  renderProventos(proventos, proventosManager);
+};
+window.limparFiltrosProventos = () => {
+  const filterAtivoEl = document.getElementById('filterProventoAtivo');
+  const filterTipoEl = document.getElementById('filterProventoTipo');
+  const filterInicioEl = document.getElementById('filterProventoInicio');
+  const filterFimEl = document.getElementById('filterProventoFim');
+  
+  if (filterAtivoEl) filterAtivoEl.value = '';
+  if (filterTipoEl) filterTipoEl.value = '';
+  if (filterInicioEl) filterInicioEl.value = '';
+  if (filterFimEl) filterFimEl.value = '';
+  
+  filterProventos();
+};
 
 // Inicializa lista ao carregar dados
 export function initProventos() {
@@ -227,7 +252,6 @@ export function initProventos() {
   if (!proventosBody) return;
 
   const proventos = proventosManager.getProventos();
-  if (proventos.length > 0) {
-    renderProventos(proventos, proventosManager);
-  }
+  // Sempre renderiza, mesmo que vazio
+  renderProventos(proventos, proventosManager);
 }

@@ -143,6 +143,13 @@ export class RendaFixaManager {
   /**
    * Retorna todos os investimentos com valores calculados
    */
+  getInvestimentos() {
+    return this.getInvestimentosAtualizados();
+  }
+
+  /**
+   * Retorna todos os investimentos com valores calculados
+   */
   getInvestimentosAtualizados() {
     return this.investimentos.map(inv => this.calcularInvestimento(inv));
   }
@@ -290,6 +297,28 @@ export class RendaFixaManager {
       rendimentoFuturo,
       meses
     };
+  }
+
+  /**
+   * Projeta rendimento de um investimento para um número de dias no futuro
+   */
+  projetarRendimento(investimento, diasFuturos = 0) {
+    // Calcula dias já corridos
+    const diasCorridos = investimento.ativo
+      ? calcularDiasCorridos(investimento.dataInicio)
+      : calcularDiasCorridos(investimento.dataInicio, new Date(investimento.dataResgate));
+
+    const diasTotais = diasCorridos + diasFuturos;
+
+    let projecao;
+    if (investimento.tipo === 'CDB' || investimento.tipo === 'LCI' || investimento.tipo === 'LCA') {
+      projecao = calcularCDB(investimento.valorInicial, investimento.taxa, diasTotais);
+    } else {
+      const tipo = investimento.tipo.replace('Tesouro ', '');
+      projecao = calcularTesouroDireto(tipo, investimento.valorInicial, investimento.taxa, diasTotais);
+    }
+
+    return projecao;
   }
 
   // LocalStorage

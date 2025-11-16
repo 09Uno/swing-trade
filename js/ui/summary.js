@@ -15,47 +15,57 @@ export function renderSummary(s){
   const resultadoTrades = s.tradeStats.lucroTotal + s.tradeStats.perdaTotal;
   const clsTrade = resultadoTrades >= 0 ? 'positive' : 'negative';
 
+  // Obtém total de proventos
+  const totalProventos = window.proventosManager ? window.proventosManager.getTotalProventos() : 0;
+
+  // Obtém total de renda fixa
+  const totalRendaFixa = s.totalRendaFixa || (window.rendaFixaManager ? window.rendaFixaManager.getValorTotal() : 0);
+
   c.innerHTML=`
   <div class="card neutral">
-    <h3>💰 Patrimônio Total</h3>
+    <h3 style="font-size:0.75rem;">💰 Patrimônio Total</h3>
     <div class="value">${formatCurrency(s.totalValue)}</div>
   </div>
   <div class="card neutral">
-    <h3>📥 Total Investido</h3>
+    <h3 style="font-size:0.75rem;">📥 Total Investido</h3>
     <div class="value">${formatCurrency(s.invested)}</div>
   </div>
   <div class="card ${clsProfit}">
-    <h3>📊 Resultado Total</h3>
+    <h3 style="font-size:0.75rem;">📊 Resultado Total</h3>
     <div class="value">${formatCurrency(s.profit)}</div>
     <div style="font-size:.85em;margin-top:5px;">${formatPercent(s.profitPercent)}</div>
   </div>
   <div class="card ${clsLucroTotal}">
-    <h3>🎯 Lucro Total</h3>
+    <h3 style="font-size:0.75rem;">🎯 Lucro Total</h3>
     <div class="value">${formatCurrency(lucroTotal)}</div>
   </div>
   <div class="card positive">
-    <h3>💸 Lucro Realizado</h3>
+    <h3 style="font-size:0.75rem;">💸 Lucro Realizado</h3>
     <div class="value">${formatCurrency(s.realizedProfit)}</div>
   </div>
   <div class="card">
-    <h3>📈 Lucro em Aberto</h3>
+    <h3 style="font-size:0.75rem;">📈 Lucro em Aberto</h3>
     <div class="value ${lucroAberto>=0?'profit':'loss'}">${formatCurrency(lucroAberto)}</div>
   </div>
-  ${s.totalProventos > 0 ? `
-  <div class="card positive">
-    <h3>💰 Proventos Recebidos</h3>
-    <div class="value">${formatCurrency(s.totalProventos)}</div>
-  </div>
-  ` : ''}
-  <div class="card neutral">
-    <h3>💵 Caixa / Renda Fixa</h3>
-    <div class="value">${formatCurrency(s.cash)}</div>
-  </div>
   <div class="card ${clsTrade}">
-    <h3>💹 Resultado em Trades</h3>
+    <h3 style="font-size:0.75rem;">💹 Resultado em Trades</h3>
     <div class="value">${formatCurrency(resultadoTrades)}</div>
     <div style="font-size:.85em;margin-top:5px;">${s.tradeStats.ganhos}✅ / ${s.tradeStats.perdas}❌</div>
   </div>
+  ${totalProventos > 0 ? `
+  <div class="card positive">
+    <h3 style="font-size:0.75rem;">💵 Proventos Recebidos</h3>
+    <div class="value">${formatCurrency(totalProventos)}</div>
+    <div style="font-size:.85em;margin-top:5px;">${window.proventosManager.getProventos().length} pagamentos</div>
+  </div>
+  ` : ''}
+  ${totalRendaFixa > 0 ? `
+  <div class="card positive">
+    <h3 style="font-size:0.75rem;">🏦 Renda Fixa</h3>
+    <div class="value">${formatCurrency(totalRendaFixa)}</div>
+    <div style="font-size:.85em;margin-top:5px;">${window.rendaFixaManager.getInvestimentos().length} investimentos</div>
+  </div>
+  ` : ''}
   `;
 }
 
@@ -79,7 +89,21 @@ export function renderChart(a,s){
   }
 
   const cat={};
+  
+  // Adiciona categorias das transações
   a.forEach(v=>{cat[v.category]=(cat[v.category]||0)+v.currentValue;});
+
+  // Adiciona Renda Fixa como categoria separada se houver
+  const totalRendaFixa = s.totalRendaFixa || 0;
+  if (totalRendaFixa > 0) {
+    cat['Renda Fixa'] = (cat['Renda Fixa'] || 0) + totalRendaFixa;
+  }
+
+  // Adiciona Proventos como categoria separada se houver
+  const totalProventos = s.totalProventos || 0;
+  if (totalProventos > 0) {
+    cat['Proventos'] = (cat['Proventos'] || 0) + totalProventos;
+  }
 
   console.log('[DEBUG] Categorias:', cat);
 
@@ -115,7 +139,16 @@ export function renderChart(a,s){
       responsive:true,
       maintainAspectRatio:true,
       plugins:{
-        legend:{position:'bottom',labels:{color:'#e6edf3',padding:15}}
+        legend:{position:'bottom',labels:{color:'#e6edf3',padding:15}},
+        tooltip:{
+          callbacks:{
+            label:function(context){
+              const total=data.reduce((a,b)=>a+b,0);
+              const percent=((context.parsed/total)*100).toFixed(2);
+              return ` ${context.label}: ${formatCurrency(context.parsed)} (${percent}%)`;
+            }
+          }
+        }
       }
     }
   });

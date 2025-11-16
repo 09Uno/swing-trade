@@ -159,6 +159,7 @@ export class PortfolioAnalyzer{
 
       // Histórico geral
       this.history.push({
+        id: t.id, // ID da transação original
         idx:idx+1,
         data:t.date,
         ativo:sym,
@@ -267,11 +268,15 @@ export class PortfolioAnalyzer{
     // Total de proventos
     const totalProventos = proventosManager ? proventosManager.getTotalProventos() : 0;
 
-    // Patrimônio Total = Valor Atual dos Ativos + Caixa (informado manualmente)
-    const total=cur+fixed;
+    // Total de Renda Fixa (valor atual)
+    const rendaFixaManager = window.rendaFixaManager || null;
+    const totalRendaFixa = rendaFixaManager ? rendaFixaManager.getValorTotal() : 0;
 
-    // Resultado Total = Patrimônio Total - Total Investido + Lucro Realizado + Proventos
-    const profit=total-inv+real+totalProventos;
+    // Patrimônio Total = Valor Atual dos Ativos + Caixa + Proventos + Renda Fixa
+    const total=cur+fixed+totalProventos+totalRendaFixa;
+
+    // Resultado Total = Patrimônio Total - Total Investido + Lucro Realizado
+    const profit=total-inv+real;
     const perc=inv>0?(profit/inv)*100:0;
 
     // Calcula estatísticas dos trades
@@ -297,6 +302,7 @@ export class PortfolioAnalyzer{
       fixedIncome:fixed,
       totalValue:total,
       totalProventos:totalProventos,
+      totalRendaFixa:totalRendaFixa,
       assets:a,
       history:this.history,
       trades:this.trades,

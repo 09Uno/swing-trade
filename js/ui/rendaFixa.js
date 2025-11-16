@@ -7,7 +7,11 @@ let paginatorRendaFixa = null;
 
 export function renderRendaFixa(investimentos, manager) {
   try {
+    console.log('[RENDA FIXA] renderRendaFixa chamado com', investimentos.length, 'itens');
+    
     const filtered = applyRendaFixaFilters(investimentos, manager);
+    console.log('[RENDA FIXA] Após filtros:', filtered.length, 'itens');
+    
     renderRendaFixaSummary(filtered, manager);
     renderRendaFixaCharts(filtered, manager);
 
@@ -18,8 +22,10 @@ export function renderRendaFixa(investimentos, manager) {
     }
 
     if (filtered.length > 10) {
+      console.log('[RENDA FIXA] Usando paginação');
       paginatorRendaFixa.setItems(filtered).render();
     } else {
+      console.log('[RENDA FIXA] Renderizando tabela direto com', filtered.length, 'itens');
       renderRendaFixaTable(filtered);
       const paginationContainer = document.getElementById('paginationRendaFixa');
       if (paginationContainer) paginationContainer.innerHTML = '';
@@ -30,8 +36,8 @@ export function renderRendaFixa(investimentos, manager) {
 }
 
 function applyRendaFixaFilters(investimentos, manager) {
-  const tipoFilter = document.getElementById('filterTipoRendaFixa');
-  const statusFilter = document.getElementById('filterStatusRendaFixa');
+  const tipoFilter = document.getElementById('filterRendaFixaTipo');
+  const statusFilter = document.getElementById('filterRendaFixaStatus');
 
   if (!tipoFilter || !statusFilter) return investimentos;
 
@@ -41,8 +47,8 @@ function applyRendaFixaFilters(investimentos, manager) {
   return investimentos.filter(inv => {
     const matchTipo = tipo === '' || inv.tipo === tipo;
     const matchStatus = status === '' ||
-      (status === 'ativo' && inv.ativo) ||
-      (status === 'resgatado' && !inv.ativo);
+      (status === 'ativos' && inv.ativo) ||
+      (status === 'resgatados' && !inv.ativo);
 
     return matchTipo && matchStatus;
   });
@@ -97,10 +103,12 @@ function renderRendaFixaCharts(investimentos, manager) {
 }
 
 function renderComposicaoChart(investimentos, manager) {
-  const canvas = document.getElementById('rendaFixaComposicaoChart');
+  const canvas = document.getElementById('rendaFixaChart');
   if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
+  const container = document.getElementById('rendaFixaChartContainer');
+  if (!container) return;
 
   // Destroi chart anterior se existir
   if (window.rendaFixaComposicaoChartInstance) {
@@ -121,11 +129,11 @@ function renderComposicaoChart(investimentos, manager) {
   const data = Object.values(byTipo);
 
   if (labels.length === 0) {
-    canvas.style.display = 'none';
+    container.style.display = 'none';
     return;
   }
 
-  canvas.style.display = 'block';
+  container.style.display = 'block';
 
   const colors = [
     '#2ecc71', '#3498db', '#9b59b6', '#e74c3c',
@@ -171,6 +179,9 @@ function renderProjecaoChart(investimentos, manager) {
   const canvas = document.getElementById('rendaFixaProjecaoChart');
   if (!canvas) return;
 
+  const container = document.getElementById('rendaFixaProjecaoContainer');
+  if (!container) return;
+
   const ctx = canvas.getContext('2d');
 
   // Destroi chart anterior se existir
@@ -180,11 +191,11 @@ function renderProjecaoChart(investimentos, manager) {
 
   const ativos = investimentos.filter(inv => inv.ativo);
   if (ativos.length === 0) {
-    canvas.style.display = 'none';
+    container.style.display = 'none';
     return;
   }
 
-  canvas.style.display = 'block';
+  container.style.display = 'block';
 
   // Projeção para os próximos 12 meses
   const meses = [];
@@ -251,17 +262,35 @@ function renderProjecaoChart(investimentos, manager) {
 
 function renderRendaFixaTable(items) {
   const tbody = document.getElementById('rendaFixaBody');
-  if (!tbody) return;
+  console.log('[RENDA FIXA TABLE] Renderizando tabela com', items.length, 'itens. tbody existe?', !!tbody);
+  
+  if (!tbody) {
+    console.error('[RENDA FIXA TABLE] Element rendaFixaBody não encontrado!');
+    return;
+  }
 
   if (items.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#8b949e;">Nenhum investimento encontrado</td></tr>';
+    console.log('[RENDA FIXA TABLE] Nenhum item, mostrando mensagem vazia');
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="11" class="empty-state">
+          <div class="empty-state-icon">💰</div>
+          <div class="empty-state-text">Nenhum investimento encontrado</div>
+          <div class="empty-state-hint">Clique em "➕ Adicionar Investimento" para começar</div>
+        </td>
+      </tr>
+    `;
     return;
   }
 
   // Precisa do manager para calcular
   const manager = window.rendaFixaManager;
-  if (!manager) return;
+  if (!manager) {
+    console.error('[RENDA FIXA TABLE] Manager não encontrado!');
+    return;
+  }
 
+  console.log('[RENDA FIXA TABLE] Renderizando', items.length, 'itens');
   tbody.innerHTML = items.map(inv => {
     const calc = manager.calcularInvestimento(inv);
     const rentabilidade = calc.valorInicial > 0 ? (calc.rendimentoLiquido / calc.valorInicial) * 100 : 0;
@@ -270,21 +299,22 @@ function renderRendaFixaTable(items) {
 
     return `<tr>
       <td><strong>${inv.nome || inv.tipo}</strong></td>
-      <td><span class="badge ${statusClass}">${statusText}</span></td>
       <td>${inv.tipo}</td>
+      <td>${inv.instituicao || '-'}</td>
       <td class="num-col">${formatCurrency(calc.valorInicial)}</td>
       <td class="num-col">${inv.taxa}% ${inv.indexador ? `do ${inv.indexador}` : ''}</td>
-      <td>${inv.dataInicio}</td>
-      <td class="num-col">${calc.diasCorridos} dias</td>
       <td class="num-col profit">${formatCurrency(calc.rendimentoLiquido)}</td>
       <td class="num-col profit">${formatCurrency(calc.totalLiquido)}</td>
-      <td class="num-col ${rentabilidade >= 0 ? 'profit' : 'loss'}">${formatPercent(rentabilidade)}</td>
+      <td class="num-col">${calc.diasCorridos} dias</td>
+      <td>${inv.dataVencimento || '-'}</td>
+      <td><span class="badge ${statusClass}">${statusText}</span></td>
       <td>
         <button class="btn-icon" onclick="editarRendaFixa(${inv.id})" title="Editar">✏️</button>
         ${inv.ativo ?
           `<button class="btn-icon" onclick="resgatarRendaFixa(${inv.id})" title="Resgatar">💰</button>` :
-          `<button class="btn-icon" onclick="excluirRendaFixa(${inv.id})" title="Excluir">🗑️</button>`
+          ``
         }
+        <button class="btn-icon" onclick="excluirRendaFixa(${inv.id})" title="Excluir">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -297,3 +327,6 @@ export function filterRendaFixa() {
   const investimentos = manager.getInvestimentos();
   renderRendaFixa(investimentos, manager);
 }
+
+// Expõe globalmente
+window.filterRendaFixa = filterRendaFixa;

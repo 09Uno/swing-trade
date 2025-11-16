@@ -13,20 +13,22 @@ window.rendaFixaManager = rendaFixaManager;
 let editingId = null;
 
 export function initRendaFixa() {
+  console.log('[RENDA FIXA INIT] Iniciando...');
+  
   const rendaFixaBody = document.getElementById('rendaFixaBody');
+  console.log('[RENDA FIXA INIT] rendaFixaBody existe?', !!rendaFixaBody);
+  
   if (!rendaFixaBody) return;
 
   const investimentos = rendaFixaManager.getInvestimentos();
-  if (investimentos.length > 0) {
-    renderRendaFixa(investimentos, rendaFixaManager);
-  } else {
-    // Mostra mensagem inicial
-    rendaFixaBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#8b949e;">Nenhum investimento cadastrado. Clique em "➕ Adicionar Investimento" para começar.</td></tr>';
-  }
+  console.log('[RENDA FIXA INIT] Encontrados', investimentos.length, 'investimentos');
+  
+  // Sempre renderiza, mesmo que vazio
+  renderRendaFixa(investimentos, rendaFixaManager);
 
   // Configura eventos dos filtros
-  const tipoFilter = document.getElementById('filterTipoRendaFixa');
-  const statusFilter = document.getElementById('filterStatusRendaFixa');
+  const tipoFilter = document.getElementById('filterRendaFixaTipo');
+  const statusFilter = document.getElementById('filterRendaFixaStatus');
 
   if (tipoFilter) {
     tipoFilter.addEventListener('change', () => {
@@ -163,8 +165,16 @@ export function resgatarRendaFixa(id) {
   }
 }
 
-export function excluirRendaFixa(id) {
-  if (!confirm('Deseja excluir este investimento? Esta ação não pode ser desfeita.')) {
+export async function excluirRendaFixa(id) {
+  const confirmed = await window.customConfirm({
+    title: '🗑️ Excluir Investimento',
+    message: 'Deseja excluir este investimento? Esta ação não pode ser desfeita.',
+    type: 'danger',
+    confirmText: 'Excluir',
+    cancelText: 'Cancelar'
+  });
+
+  if (!confirmed) {
     return;
   }
 
@@ -259,6 +269,88 @@ export function atualizarCamposRendaFixa() {
       taxaHelp.textContent = 'Informe a taxa prefixada (ex: 12 para 12% a.a.)';
     }
   }
+
+  // Atualiza liquidez
+  atualizarLiquidezRendaFixa();
+}
+
+// Controla a exibição do campo de vencimento baseado na liquidez
+export function atualizarLiquidezRendaFixa() {
+  const liquidez = document.getElementById('rendaFixaLiquidez').value;
+  const divDataVencimento = document.getElementById('divDataVencimento');
+  const inputVencimento = document.getElementById('rendaFixaDataVenc');
+
+  if (divDataVencimento && inputVencimento) {
+    if (liquidez === 'Diária') {
+      // Esconde o campo de vencimento se for liquidez diária
+      divDataVencimento.style.display = 'none';
+      inputVencimento.value = ''; // Limpa o valor
+      inputVencimento.removeAttribute('required');
+    } else {
+      // Mostra o campo de vencimento se for outro tipo de liquidez
+      divDataVencimento.style.display = 'block';
+    }
+  }
+}
+
+// Preview em tempo real
+export function atualizarPreviewRendaFixa() {
+  const tipo = document.getElementById('rendaFixaTipo').value;
+  const valor = Number(document.getElementById('rendaFixaValor').value);
+  const taxa = Number(document.getElementById('rendaFixaTaxa').value);
+  const dataInicio = document.getElementById('rendaFixaDataInicio').value;
+  const dataVenc = document.getElementById('rendaFixaDataVenc').value;
+
+  const preview = document.getElementById('rendaFixaPreview');
+  const previewContent = document.getElementById('rendaFixaPreviewContent');
+
+  // Só mostra preview se tiver os dados mínimos
+  if (!tipo || !valor || !taxa || !dataInicio) {
+    preview.style.display = 'none';
+    return;
+  }
+
+  // Cria objeto temporário para calcular
+  const tempInv = {
+    tipo,
+    valorInicial: valor,
+    taxa,
+    dataInicio,
+    dataVencimento: dataVenc || null,
+    indexador: tipo.includes('CDB') || tipo.includes('LCI') || tipo.includes('LCA') ? 'CDI' :
+               tipo.includes('Selic') ? 'SELIC' :
+               tipo.includes('IPCA') ? 'IPCA' : null
+  };
+
+  // Calcula
+  const calc = rendaFixaManager.calcularInvestimento(tempInv);
+  const rentabilidade = calc.valorInicial > 0 ? ((calc.rendimentoLiquido / calc.valorInicial) * 100) : 0;
+
+  // Formata e exibe
+  previewContent.innerHTML = `
+    <div style="text-align:center;">
+      <div style="color:#8b949e;font-size:11px;">Dias Corridos</div>
+      <div style="color:#e6edf3;font-weight:600;">${calc.diasCorridos}</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="color:#8b949e;font-size:11px;">Rendimento Bruto</div>
+      <div style="color:#2ecc71;font-weight:600;">R$ ${calc.rendimentoBruto.toFixed(2)}</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="color:#8b949e;font-size:11px;">Rendimento Líquido</div>
+      <div style="color:#58a6ff;font-weight:600;">R$ ${calc.rendimentoLiquido.toFixed(2)}</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="color:#8b949e;font-size:11px;">Valor Atual</div>
+      <div style="color:#e6edf3;font-weight:600;font-size:15px;">R$ ${calc.totalLiquido.toFixed(2)}</div>
+    </div>
+    <div style="text-align:center;">
+      <div style="color:#8b949e;font-size:11px;">Rentabilidade</div>
+      <div style="color:${rentabilidade >= 0 ? '#2ecc71' : '#da3633'};font-weight:600;">${rentabilidade.toFixed(2)}%</div>
+    </div>
+  `;
+
+  preview.style.display = 'block';
 }
 
 // Alias para manter compatibilidade
@@ -277,4 +369,17 @@ window.abrirModalTaxas = abrirModalTaxas;
 window.fecharModalTaxas = fecharModalTaxas;
 window.salvarTaxas = salvarTaxas;
 window.atualizarCamposRendaFixa = atualizarCamposRendaFixa;
+window.atualizarLiquidezRendaFixa = atualizarLiquidezRendaFixa;
+window.atualizarPreviewRendaFixa = atualizarPreviewRendaFixa;
 window.updateRendaFixaFields = updateRendaFixaFields;
+window.filterRendaFixa = () => {
+  const investimentos = rendaFixaManager.getInvestimentos();
+  renderRendaFixa(investimentos, rendaFixaManager);
+};
+window.limparFiltrosRendaFixa = () => {
+  const tipoFilter = document.getElementById('filterRendaFixaTipo');
+  const statusFilter = document.getElementById('filterRendaFixaStatus');
+  if (tipoFilter) tipoFilter.value = '';
+  if (statusFilter) statusFilter.value = 'ativos';
+  filterRendaFixa();
+};

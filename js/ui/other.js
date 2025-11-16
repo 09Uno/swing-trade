@@ -4,6 +4,8 @@ import { formatCurrency, formatQty, formatPercent } from '../utils/formatters.js
 import { createPaginator } from '../utils/pagination.js';
 
 let paginatorHistorico = null;
+let paginatorTrades = null;
+let allTrades = [];
 
 // Função auxiliar para calcular dias entre datas
 function calcularDias(dataInicio, dataFim){
@@ -25,6 +27,8 @@ function calcularDias(dataInicio, dataFim){
 }
 
 export function renderTrades(trades){
+  allTrades = trades;
+
   const filtered=trades.filter(t=>
     document.getElementById('filterAsset').value===''||
     t.ativo.toUpperCase().includes(document.getElementById('filterAsset').value.toUpperCase())
@@ -34,16 +38,38 @@ export function renderTrades(trades){
 
   if(filtered.length===0){
     container.innerHTML='<p style="text-align:center;color:#8b949e;">Nenhum trade encontrado</p>';
+    document.getElementById('paginationTrades').innerHTML='';
     return;
   }
 
+  // Agrupa por ativo
   const byAsset={};
   filtered.forEach(t=>{
     if(!byAsset[t.ativo])byAsset[t.ativo]=[];
     byAsset[t.ativo].push(t);
   });
 
-  container.innerHTML=Object.entries(byAsset).map(([asset,trades])=>{
+  const tradesGrouped = Object.entries(byAsset);
+
+  // Inicializa paginação se necessário
+  if(!paginatorTrades){
+    paginatorTrades=createPaginator('paginationTrades',[5,10,20,50]);
+    paginatorTrades.setRenderCallback(renderTradesPage);
+  }
+
+  // Se tiver mais de 5 grupos, usa paginação
+  if(tradesGrouped.length > 5){
+    paginatorTrades.setItems(tradesGrouped).render();
+  } else {
+    renderTradesPage(tradesGrouped);
+    document.getElementById('paginationTrades').innerHTML='';
+  }
+}
+
+function renderTradesPage(items){
+  const container=document.getElementById('tradesContainer');
+
+  container.innerHTML=items.map(([asset,trades])=>{
     const totalProfit=trades.reduce((s,t)=>s+t.lucroTotal,0);
     const profitTrades=trades.filter(t=>t.lucroTotal>=0).length;
     const lossTrades=trades.filter(t=>t.lucroTotal<0).length;
@@ -115,7 +141,16 @@ export function renderTrades(trades){
   }).join('');
 }
 
+// Guarda histórico original para filtros
+let historicoOriginal = [];
+
 export function renderHistorico(h){
+  // Guarda histórico original
+  historicoOriginal = [...h];
+
+  // Ordena do mais recente para o mais antigo
+  const historico = [...h].reverse();
+
   // Inicializa paginação se necessário
   if(!paginatorHistorico){
     paginatorHistorico=createPaginator('paginationHistorico',[25,50,100,200]);
@@ -123,10 +158,10 @@ export function renderHistorico(h){
   }
 
   // Se tiver mais de 25 itens, usa paginação
-  if(h.length>25){
-    paginatorHistorico.setItems(h).render();
+  if(historico.length>25){
+    paginatorHistorico.setItems(historico).render();
   }else{
-    renderHistoricoTable(h);
+    renderHistoricoTable(historico);
     document.getElementById('paginationHistorico').innerHTML='';
   }
 
@@ -135,6 +170,20 @@ export function renderHistorico(h){
 
 function renderHistoricoTable(items){
   const tb=document.getElementById('transactionsBody');
+  
+  if (items.length === 0) {
+    tb.innerHTML = `
+      <tr>
+        <td colspan="13" class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <div class="empty-state-text">Nenhuma transação encontrada</div>
+          <div class="empty-state-hint">Tente ajustar os filtros de busca</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
   tb.innerHTML=items.map(x=>{
     const totalTx=x.tipo==='C'?(x.qtd*x.preco+x.custos):(x.qtd*x.preco-x.custos);
     return `<tr>
@@ -150,17 +199,67 @@ function renderHistoricoTable(items){
       <td class="num-col">${formatQty(x.qtdCarteira)}</td>
       <td class="num-col profit">${formatCurrency(x.lucroRealizado)}</td>
       <td class="num-col">${formatCurrency(x.caixa)}</td>
+      <td>
+        <button class="btn-icon" onclick="editarTransacao(${x.id})" title="Editar">✏️</button>
+        <button class="btn-icon" onclick="excluirTransacao(${x.id})" title="Excluir">🗑️</button>
+      </td>
     </tr>`;
   }).join('');
 }
 
-export function filterTrades(){
-  // Importa currentData do módulo principal
-  import('../data/dataLoader.js').then(module => {
-    if(module.currentData && module.currentData.summary){
-      renderTrades(module.currentData.summary.trades);
+// Função de filtro do histórico
+export function filterHistorico() {
+  const searchText = document.getElementById('searchHistorico')?.value.toUpperCase() || '';
+  const filterTipo = document.getElementById('filterHistoricoTipo')?.value || '';
+  const filterCategoria = document.getElementById('filterHistoricoCategoria')?.value || '';
+
+  // Ordena do mais recente para o mais antigo
+  let filtered = [...historicoOriginal].reverse();
+
+  // Aplica filtros
+  if (searchText) {
+    filtered = filtered.filter(x => 
+      x.ativo.toUpperCase().includes(searchText) ||
+      (x.tipo === 'C' ? 'COMPRA' : 'VENDA').includes(searchText) ||
+      x.categoria.toUpperCase().includes(searchText)
+    );
+  }
+
+  if (filterTipo) {
+    filtered = filtered.filter(x => x.tipo === filterTipo);
+  }
+
+  if (filterCategoria) {
+    filtered = filtered.filter(x => x.categoria === filterCategoria);
+  }
+
+  // Renderiza resultado filtrado
+  if (filtered.length > 25) {
+    if (!paginatorHistorico) {
+      paginatorHistorico = createPaginator('paginationHistorico', [25, 50, 100, 200]);
+      paginatorHistorico.setRenderCallback(renderHistoricoTable);
     }
-  });
+    paginatorHistorico.setItems(filtered).render();
+  } else {
+    renderHistoricoTable(filtered);
+    document.getElementById('paginationHistorico').innerHTML = '';
+  }
+}
+
+// Expõe globalmente
+window.filterHistorico = filterHistorico;
+
+export function filterTrades(){
+  if(allTrades.length > 0) {
+    renderTrades(allTrades);
+  } else {
+    // Importa currentData do módulo principal
+    import('../data/dataLoader.js').then(module => {
+      if(module.currentData && module.currentData.summary){
+        renderTrades(module.currentData.summary.trades);
+      }
+    });
+  }
 }
 
 // Export/Download functions

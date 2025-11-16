@@ -130,7 +130,9 @@ function renderAssetsTable(items){
       <td class="num-col">${formatCurrency(x.avgPrice)}</td>
       <td>
         <input type="number" class="price-input" step="0.01" value="${Number(x.currentPrice).toFixed(2)}"
-          onchange="updatePrice('${x.symbol}',this.value)">
+          onchange="updatePrice('${x.symbol}',this.value)"
+          onkeypress="if(event.key==='Enter') { this.blur(); updatePrice('${x.symbol}',this.value); }"
+          title="Digite o novo preço e pressione Enter ou clique fora para salvar">
       </td>
       <td class="num-col">${formatCurrency(x.invested)}</td>
       <td class="num-col">${formatCurrency(x.currentValue)}</td>

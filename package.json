@@ -1,0 +1,14 @@
+{
+  "name": "swing-trade-manager",
+  "version": "1.0.0",
+  "description": "Sistema de gestão de investimentos em Swing Trade",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve .",
+    "backend": "cd backend && npm run dev",
+    "deploy": "git add . && git commit -m 'Deploy update' && git push origin main"
+  },
+  "keywords": ["investimentos", "swing-trade", "portfolio", "fifo"],
+  "author": "09Uno",
+  "license": "MIT"
+}

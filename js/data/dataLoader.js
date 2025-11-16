@@ -9,6 +9,90 @@ import { renderTrades, renderHistorico, filterTrades, exportReport, exportExcel 
 export let currentData = null;
 export let allTrades = [];
 
+// ========== FUNÇÕES DE PERSISTÊNCIA DE PREÇOS ==========
+
+// Mapeia símbolos de criptomoedas para IDs do CoinGecko
+function getCryptoId(symbol) {
+  const cryptoMap = {
+    'BTC': 'bitcoin',
+    'BITCOIN': 'bitcoin',
+    'ETH': 'ethereum',
+    'ETHEREUM': 'ethereum',
+    'BNB': 'binancecoin',
+    'SOL': 'solana',
+    'SOLANA': 'solana',
+    'ADA': 'cardano',
+    'CARDANO': 'cardano',
+    'XRP': 'ripple',
+    'RIPPLE': 'ripple',
+    'DOT': 'polkadot',
+    'POLKADOT': 'polkadot',
+    'DOGE': 'dogecoin',
+    'DOGECOIN': 'dogecoin',
+    'MATIC': 'matic-network',
+    'POLYGON': 'matic-network',
+    'LTC': 'litecoin',
+    'LITECOIN': 'litecoin',
+    'LINK': 'chainlink',
+    'CHAINLINK': 'chainlink',
+    'UNI': 'uniswap',
+    'UNISWAP': 'uniswap',
+    'AVAX': 'avalanche-2',
+    'AVALANCHE': 'avalanche-2',
+    'ATOM': 'cosmos',
+    'COSMOS': 'cosmos',
+    'FTM': 'fantom',
+    'FANTOM': 'fantom',
+    'ALGO': 'algorand',
+    'ALGORAND': 'algorand',
+    'NEAR': 'near',
+    'APT': 'aptos',
+    'APTOS': 'aptos',
+    'OP': 'optimism',
+    'OPTIMISM': 'optimism',
+    'ARB': 'arbitrum',
+    'ARBITRUM': 'arbitrum',
+    'USDT': 'tether',
+    'USDC': 'usd-coin',
+    'DAI': 'dai',
+    'BUSD': 'binance-usd'
+  };
+  
+  return cryptoMap[symbol.toUpperCase()] || null;
+}
+
+// Carrega preços salvos do localStorage
+function loadSavedPrices() {
+  try {
+    const saved = localStorage.getItem('savedPrices');
+    if (!saved) {
+      console.log('💾 Nenhum preço salvo encontrado');
+      return {};
+    }
+    const prices = JSON.parse(saved);
+    console.log('💾 Preços salvos carregados:', prices);
+    return prices;
+  } catch (error) {
+    console.error('❌ Erro ao carregar preços salvos:', error);
+    return {};
+  }
+}
+
+// Salva preço no localStorage
+function savePriceToStorage(symbol, price) {
+  try {
+    const savedPrices = JSON.parse(localStorage.getItem('savedPrices') || '{}');
+    savedPrices[symbol] = {
+      price: Number(price),
+      updatedAt: new Date().toISOString()
+    };
+    localStorage.setItem('savedPrices', JSON.stringify(savedPrices));
+    console.log(`💾 Preço salvo: ${symbol} = R$ ${price}`);
+  } catch (error) {
+    console.error('Erro ao salvar preço:', error);
+  }
+}
+
 // Carrega dados do banco (fonte única de verdade)
 export async function loadFromDatabase(){
   const { getTransacoes } = await import('../utils/dataSync.js');
@@ -155,12 +239,21 @@ export function processData(json){
 
   const analyzer=new PortfolioAnalyzer(t);
   const prices=new Map();
+  
+  // Carrega preços salvos
+  const savedPrices = loadSavedPrices();
 
   analyzer.assets.forEach(v=>{
     let lastPrice=0;
-    if(v.transactions.length>0){
+    
+    // Verifica se existe preço salvo para este ativo
+    if (savedPrices[v.symbol]) {
+      lastPrice = savedPrices[v.symbol].price;
+      console.log(`📌 Usando preço salvo para ${v.symbol}: ${lastPrice}`);
+    } else if(v.transactions.length>0){
       lastPrice=v.transactions[v.transactions.length-1].preco;
     }
+    
     prices.set(v.symbol,lastPrice||0);
   });
 
@@ -223,12 +316,21 @@ export function processDataFromDatabase(transactions){
   // Processa normalmente
   const analyzer = new PortfolioAnalyzer(t);
   const prices = new Map();
+  
+  // Carrega preços salvos
+  const savedPrices = loadSavedPrices();
 
   analyzer.assets.forEach(v => {
     let lastPrice = 0;
-    if (v.transactions.length > 0) {
+    
+    // Verifica se existe preço salvo para este ativo
+    if (savedPrices[v.symbol]) {
+      lastPrice = savedPrices[v.symbol].price;
+      console.log(`📌 Usando preço salvo para ${v.symbol}: ${lastPrice}`);
+    } else if (v.transactions.length > 0) {
       lastPrice = v.transactions[v.transactions.length - 1].preco;
     }
+    
     prices.set(v.symbol, lastPrice || 0);
   });
 
@@ -260,7 +362,14 @@ export function processDataFromDatabase(transactions){
 export function updatePrice(sym,val){
   if(!currentData)return;
 
-  currentData.prices.set(sym,Number(val)||0);
+  const newPrice = Number(val) || 0;
+  console.log(`🔄 Atualizando preço de ${sym}: ${val} -> ${newPrice}`);
+  
+  currentData.prices.set(sym, newPrice);
+  
+  // Salva o preço no localStorage
+  savePriceToStorage(sym, newPrice);
+  
   const fixed=getFixedIncome();
   const proventosManager = window.proventosManager || null;
   const s=currentData.analyzer.getSummary(currentData.prices,fixed,proventosManager);
@@ -273,6 +382,8 @@ export function updatePrice(sym,val){
 
   const allAssets=currentData.analyzer.getAllAssetsData(currentData.prices);
   renderAllAssets(allAssets);
+  
+  showStatus(`💰 Preço de ${sym} atualizado para R$ ${Number(val).toFixed(2)}`, 'success');
 }
 
 export function updateFixedIncome(){
@@ -303,13 +414,20 @@ export async function updateRealTimePrices(){
   btn.disabled=true;
 
   const symbols=[];
+  const cryptoSymbols = [];
+  
   currentData.analyzer.assets.forEach(a=>{
     if(a.lotes.length>0){
-      symbols.push(a.symbol);
+      // Separa criptomoedas dos outros ativos
+      if(a.category === 'Cripto' || a.category === 'Criptomoedas'){
+        cryptoSymbols.push({symbol: a.symbol, category: a.category});
+      } else {
+        symbols.push(a.symbol);
+      }
     }
   });
 
-  if(symbols.length===0){
+  if(symbols.length === 0 && cryptoSymbols.length === 0){
     showStatus('Nenhum ativo para atualizar','info');
     btn.disabled=false;
     return;
@@ -320,6 +438,7 @@ export async function updateRealTimePrices(){
   let errorCount=0;
 
   try{
+    // Atualiza ativos tradicionais (B3)
     for(const symbol of symbols){
       try{
         const url=`https://brapi.dev/api/quote/${symbol}?token=${apiKey}`;
@@ -336,9 +455,14 @@ export async function updateRealTimePrices(){
         if(data.results&&Array.isArray(data.results)&&data.results[0]){
           const stock=data.results[0];
           if(stock.regularMarketPrice&&stock.regularMarketPrice>0){
-            currentData.prices.set(symbol,stock.regularMarketPrice);
+            const newPrice = stock.regularMarketPrice;
+            currentData.prices.set(symbol, newPrice);
+            
+            // SALVA o preço no localStorage
+            savePriceToStorage(symbol, newPrice);
+            
             successCount++;
-            console.log(`✓ ${symbol}: R$ ${stock.regularMarketPrice.toFixed(2)}`);
+            console.log(`✓ ${symbol}: R$ ${newPrice.toFixed(2)} (salvo)`);
           }else{
             errorCount++;
             console.log(`✗ ${symbol}: Preço não disponível`);
@@ -356,6 +480,48 @@ export async function updateRealTimePrices(){
       await new Promise(resolve=>setTimeout(resolve,200));
     }
 
+    // Atualiza criptomoedas (CoinGecko)
+    for(const crypto of cryptoSymbols){
+      try{
+        const cryptoId = getCryptoId(crypto.symbol);
+        if(!cryptoId){
+          console.log(`✗ ${crypto.symbol}: Criptomoeda não mapeada`);
+          errorCount++;
+          continue;
+        }
+
+        // API CoinGecko (gratuita, sem API key necessária)
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoId}&vs_currencies=brl`;
+        const response = await fetch(url);
+        
+        if(!response.ok){
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if(data[cryptoId] && data[cryptoId].brl){
+          const newPrice = data[cryptoId].brl;
+          currentData.prices.set(crypto.symbol, newPrice);
+          
+          // SALVA o preço no localStorage
+          savePriceToStorage(crypto.symbol, newPrice);
+          
+          successCount++;
+          console.log(`✓ ${crypto.symbol}: R$ ${newPrice.toFixed(2)} (salvo)`);
+        }else{
+          errorCount++;
+          console.log(`✗ ${crypto.symbol}: Preço não disponível`);
+        }
+
+      }catch(e){
+        console.error(`✗ ${crypto.symbol}:`, e.message);
+        errorCount++;
+      }
+
+      await new Promise(resolve=>setTimeout(resolve,500)); // CoinGecko tem rate limit menor
+    }
+
     const fixed=getFixedIncome();
     const proventosManager = window.proventosManager || null;
     const s=currentData.analyzer.getSummary(currentData.prices,fixed,proventosManager);
@@ -369,8 +535,10 @@ export async function updateRealTimePrices(){
     const allAssets=currentData.analyzer.getAllAssetsData(currentData.prices);
     renderAllAssets(allAssets);
 
+    const totalAtivos = symbols.length + cryptoSymbols.length;
     if(successCount>0){
-      showStatus(`✅ ${successCount} cotações atualizadas${errorCount>0?` (${errorCount} não encontradas)`:''}!`,'success');
+      const msg = `✅ ${successCount}/${totalAtivos} cotações atualizadas${errorCount>0?` (${errorCount} falhas)`:''}!`;
+      showStatus(msg,'success');
     }else{
       showStatus('❌ Não foi possível atualizar. Edite os preços manualmente na tabela.','error');
     }

@@ -1,6 +1,6 @@
 // ========== PONTO DE ENTRADA PRINCIPAL ==========
 
-import { switchTab } from './utils/helpers.js';
+import { switchTab, showStatus } from './utils/helpers.js';
 import { loadExcel, updateRealTimePrices, updateFixedIncome, currentData } from './data/dataLoader.js';
 import { filterCurrentAssets, filterAllAssets } from './ui/tables.js';
 import { proventosManager, initProventos } from './controllers/proventosController.js';
@@ -11,6 +11,7 @@ import { initDataSync, isUsingApi, getTransacoes } from './utils/dataSync.js';
 
 // Expõe funções necessárias globalmente para onclick
 window.switchTab = switchTab;
+window.showStatus = showStatus;
 window.loadExcel = loadExcel;
 window.updateRealTimePrices = updateRealTimePrices;
 window.filterCurrentAssets = filterCurrentAssets;
@@ -18,6 +19,8 @@ window.filterAllAssets = filterAllAssets;
 window.proventosManager = proventosManager;
 window.rendaFixaManager = rendaFixaManager;
 window.filterRendaFixa = filterRendaFixa;
+window.initProventos = initProventos;
+window.initRendaFixa = initRendaFixa;
 window.isUsingApi = isUsingApi;
 
 // Inicialização
@@ -34,11 +37,13 @@ window.addEventListener('load', async ()=>{
   const fixedIncomeInput = document.getElementById('fixedIncomeInput');
 
   // Atualiza quando o valor do caixa é alterado
-  fixedIncomeInput.addEventListener('input',()=>{
-    if(currentData){
-      updateFixedIncome();
-    }
-  });
+  if (fixedIncomeInput) {
+    fixedIncomeInput.addEventListener('input',()=>{
+      if(currentData){
+        updateFixedIncome();
+      }
+    });
+  }
 
   // SEMPRE carrega do banco (fonte única de verdade)
   console.log('🚀 Iniciando sistema...');

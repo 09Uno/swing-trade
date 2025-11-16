@@ -175,6 +175,56 @@ export async function getProventos() {
   }
 }
 
+export async function atualizarProvento(id, dados) {
+  console.log('✏️ Atualizando provento ID:', id);
+
+  try {
+    if (useApi) {
+      console.log('📡 Atualizando via API...');
+      return await proventosApi.update(id, dados);
+    } else {
+      console.log('💿 Atualizando no LocalStorage...');
+      const proventos = getProventosLocal();
+      const index = proventos.findIndex(p => p.id === id);
+      if (index !== -1) {
+        proventos[index] = { ...proventos[index], ...dados };
+        localStorage.setItem(STORAGE_KEYS.proventos, JSON.stringify(proventos));
+        console.log('✅ Atualizado!');
+        return proventos[index];
+      }
+      throw new Error('Provento não encontrado');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao atualizar provento:', error);
+    throw error;
+  }
+}
+
+export async function excluirProvento(id) {
+  console.log('🗑️ Excluindo provento ID:', id);
+
+  try {
+    if (useApi) {
+      console.log('📡 Excluindo via API...');
+      return await proventosApi.delete(id);
+    } else {
+      console.log('💿 Excluindo do LocalStorage...');
+      const proventos = getProventosLocal();
+      const filtered = proventos.filter(p => p.id !== id);
+      localStorage.setItem(STORAGE_KEYS.proventos, JSON.stringify(filtered));
+      console.log('✅ Excluído! Total restante:', filtered.length);
+      return { success: true };
+    }
+  } catch (error) {
+    console.error('❌ Erro ao excluir provento:', error);
+    // Fallback LocalStorage
+    const proventos = getProventosLocal();
+    const filtered = proventos.filter(p => p.id !== id);
+    localStorage.setItem(STORAGE_KEYS.proventos, JSON.stringify(filtered));
+    return { success: true };
+  }
+}
+
 function getProventosLocal() {
   const stored = localStorage.getItem(STORAGE_KEYS.proventos);
   return stored ? JSON.parse(stored) : [];

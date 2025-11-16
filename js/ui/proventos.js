@@ -7,10 +7,13 @@ let paginatorProventos = null;
 let proventosChartInstance = null;
 
 export function renderProventos(proventos, proventosManager) {
-  try {
-    // Aplica filtros
-    const filtered = applyProventosFilters(proventos);
+  console.log('[PROVENTOS] renderProventos chamado com', proventos.length, 'itens');
+  
+  // Aplica filtros
+  const filtered = applyProventosFilters(proventos);
+  console.log('[PROVENTOS] Após filtros:', filtered.length, 'itens');
 
+  try {
     // Renderiza summary cards
     renderProventosSummary(proventosManager);
 
@@ -18,7 +21,6 @@ export function renderProventos(proventos, proventosManager) {
     renderProventosChart(proventos, proventosManager);
   } catch (error) {
     console.error('Erro ao renderizar proventos:', error);
-    return;
   }
 
   // Inicializa paginação
@@ -29,8 +31,10 @@ export function renderProventos(proventos, proventosManager) {
 
   // Se tiver mais de 10 itens, usa paginação
   if (filtered.length > 10) {
+    console.log('[PROVENTOS] Usando paginação');
     paginatorProventos.setItems(filtered).render();
   } else {
+    console.log('[PROVENTOS] Renderizando tabela direto com', filtered.length, 'itens');
     renderProventosTable(filtered);
     document.getElementById('paginationProventos').innerHTML = '';
   }
@@ -72,19 +76,29 @@ function applyProventosFilters(proventos) {
 
 function renderProventosTable(items) {
   const tbody = document.getElementById('proventosBody');
+  console.log('[PROVENTOS TABLE] Renderizando tabela com', items.length, 'itens. tbody existe?', !!tbody);
+
+  if (!tbody) {
+    console.error('[PROVENTOS TABLE] Element proventosBody não encontrado!');
+    return;
+  }
 
   if (items.length === 0) {
+    console.log('[PROVENTOS TABLE] Nenhum item, mostrando mensagem vazia');
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" style="text-align:center;padding:40px;color:#8b949e;">
-          📊 Nenhum provento cadastrado.<br><br>
-          <button onclick="abrirModalProvento()" style="margin-top:10px;">➕ Adicionar Primeiro Provento</button>
+        <td colspan="8" class="empty-state">
+          <div class="empty-state-icon">📊</div>
+          <div class="empty-state-text">Nenhum provento cadastrado</div>
+          <div class="empty-state-hint">Comece adicionando seu primeiro provento</div>
+          <button onclick="abrirModalProvento()" class="btn btn-primary" style="margin-top:20px;">➕ Adicionar Primeiro Provento</button>
         </td>
       </tr>
     `;
     return;
   }
 
+  console.log('[PROVENTOS TABLE] Renderizando', items.length, 'itens');
   tbody.innerHTML = items.map(p => {
     const badgeClass = p.tipo === 'Dividendo' ? 'badge-dividendo' : p.tipo === 'JCP' ? 'badge-jcp' : 'badge-rendimento';
     const dataCom = formatarData(p.dataCom);
