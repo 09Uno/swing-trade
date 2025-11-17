@@ -4,6 +4,7 @@ import { ProventosManager } from '../models/ProventosManager.js';
 import { renderProventos } from '../ui/proventos.js';
 import { formatCurrency } from '../utils/formatters.js';
 import { showStatus } from '../utils/helpers.js';
+import { salvarProvento as salvarProventoAPI } from '../utils/dataSync.js';
 
 // Inicializa manager
 export const proventosManager = new ProventosManager();
@@ -61,7 +62,7 @@ export function fecharModalProvento() {
   document.getElementById('modalProvento').style.display = 'none';
 }
 
-export function salvarProvento(event) {
+export async function salvarProvento(event) {
   event.preventDefault();
 
   const id = document.getElementById('proventoId').value;
@@ -75,6 +76,10 @@ export function salvarProvento(event) {
   };
 
   try {
+    // Salva na API/Banco
+    await salvarProventoAPI(dados);
+    
+    // Atualiza manager local
     if (id) {
       // Edita
       proventosManager.editarProvento(parseInt(id), dados);
