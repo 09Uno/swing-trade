@@ -172,11 +172,23 @@ function convertExcelToDatabase(json) {
     const asset = r["Código Ativo"] || r["Ativo"] || r["Symbol"];
     if (!asset) return;
 
-    const dataOp = r["Data operação"] || r["Data"] || r["date"];
+    let dataOp = r["Data operação"] || r["Data"] || r["date"];
     const operacao = r["Operação C/V"] || r["Tipo"] || r["Type"] || '';
     const operacaoNorm = operacao.toString().trim().toUpperCase();
 
     if (!dataOp || (!operacaoNorm.includes('C') && !operacaoNorm.includes('V'))) return;
+
+    // Converte data do Excel (número serial) para formato YYYY-MM-DD
+    if (typeof dataOp === 'number') {
+      const excelDate = XLSX.SSF.parse_date_code(dataOp);
+      dataOp = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+    } else if (typeof dataOp === 'string' && dataOp.includes('/')) {
+      // Se veio como DD/MM/YYYY, converte para YYYY-MM-DD
+      const parts = dataOp.split('/');
+      if (parts.length === 3) {
+        dataOp = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
 
     const qtd = parsePrice(r["Quantidade"] || r["Qtd"] || 0);
     if (qtd < 0.000001) return;
@@ -209,11 +221,22 @@ export function processData(json){
     const asset=r["Código Ativo"]||r["Ativo"]||r["Symbol"];
     if(!asset)return;
 
-    const dataOp=r["Data operação"]||r["Data"]||r["date"];
+    let dataOp=r["Data operação"]||r["Data"]||r["date"];
     const operacao=r["Operação C/V"]||r["Tipo"]||r["Type"]||'';
     const operacaoNorm=operacao.toString().trim().toUpperCase();
 
     if(!dataOp||(!operacaoNorm.includes('C')&&!operacaoNorm.includes('V')))return;
+
+    // Converte data do Excel (número serial) para formato YYYY-MM-DD
+    if (typeof dataOp === 'number') {
+      const excelDate = XLSX.SSF.parse_date_code(dataOp);
+      dataOp = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+    } else if (typeof dataOp === 'string' && dataOp.includes('/')) {
+      const parts = dataOp.split('/');
+      if (parts.length === 3) {
+        dataOp = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
 
     const qtd=parsePrice(r["Quantidade"]||r["Qtd"]||0);
     if(qtd<0.000001)return;
