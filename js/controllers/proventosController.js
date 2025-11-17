@@ -80,16 +80,23 @@ export async function salvarProvento(event) {
   };
 
   try {
-    if (id) {
-      // Edita na API/Banco
+    // Se o ID é muito grande (>2147483647), é do localStorage - cria novo no banco
+    const isLocalStorageId = id && parseInt(id) > 2147483647;
+    
+    if (id && !isLocalStorageId) {
+      // Edita na API/Banco (ID válido do PostgreSQL)
       await atualizarProvento(parseInt(id), dados);
       // Atualiza manager local
       proventosManager.editarProvento(parseInt(id), dados);
       showStatus('✅ Provento atualizado com sucesso!', 'success');
     } else {
-      // Cria na API/Banco
+      // Cria na API/Banco (novo ou migração do localStorage)
       await salvarProventoAPI(dados);
       // Atualiza manager local
+      if (isLocalStorageId) {
+        // Remove o antigo do localStorage e adiciona o novo
+        proventosManager.excluirProvento(parseInt(id));
+      }
       proventosManager.adicionarProvento(dados);
       showStatus('✅ Provento adicionado com sucesso!', 'success');
     }

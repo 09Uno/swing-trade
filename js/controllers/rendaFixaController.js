@@ -127,16 +127,23 @@ export async function salvarRendaFixa(event) {
   }
 
   try {
-    if (editingId) {
-      // Atualiza na API/Banco
+    // Se o ID é muito grande (>2147483647), é do localStorage - cria novo no banco
+    const isLocalStorageId = editingId && editingId > 2147483647;
+    
+    if (editingId && !isLocalStorageId) {
+      // Atualiza na API/Banco (ID válido do PostgreSQL)
       await atualizarRendaFixa(editingId, dados);
       // Atualiza manager local
       rendaFixaManager.editarInvestimento(editingId, dados);
       showStatus('Investimento atualizado com sucesso!', 'success');
     } else {
-      // Salva na API/Banco
+      // Salva na API/Banco (novo ou migração do localStorage)
       await salvarRendaFixaAPI(dados);
       // Atualiza manager local
+      if (isLocalStorageId) {
+        // Remove o antigo do localStorage e adiciona o novo
+        rendaFixaManager.excluirInvestimento(editingId);
+      }
       rendaFixaManager.adicionarInvestimento(dados);
       showStatus('Investimento adicionado com sucesso!', 'success');
     }
