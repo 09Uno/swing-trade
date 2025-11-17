@@ -24,9 +24,10 @@ export async function salvarTransacao(transacao) {
 
   try {
     if (useApi) {
-      // Salva na API
+      // Salva na API (remove ID - será gerado pelo banco)
       console.log('📡 Salvando via API...');
-      return await transactionsApi.create(transacao);
+      const { id, ...dadosSemId } = transacao;
+      return await transactionsApi.create(dadosSemId);
     } else {
       // Salva no LocalStorage
       console.log('💿 Salvando no LocalStorage...');
@@ -144,7 +145,9 @@ function getTransacoesLocal() {
 export async function salvarProvento(provento) {
   try {
     if (useApi) {
-      return await proventosApi.create(provento);
+      // Remove ID antes de enviar (será gerado pelo banco)
+      const { id, ...dadosSemId } = provento;
+      return await proventosApi.create(dadosSemId);
     } else {
       const proventos = getProventosLocal();
       provento.id = Date.now();
@@ -235,7 +238,9 @@ function getProventosLocal() {
 export async function salvarRendaFixa(investimento) {
   try {
     if (useApi) {
-      return await rendaFixaApi.create(investimento);
+      // Remove ID antes de enviar (será gerado pelo banco)
+      const { id, ...dadosSemId } = investimento;
+      return await rendaFixaApi.create(dadosSemId);
     } else {
       const investimentos = getRendaFixaLocal();
       investimento.id = Date.now();
