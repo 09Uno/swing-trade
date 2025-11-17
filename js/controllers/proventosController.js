@@ -186,7 +186,9 @@ function atualizarListaProventos() {
   if (window.currentData) {
     import('../data/dataLoader.js').then(module => {
       if (module.currentData) {
-        const fixed = document.getElementById('fixedIncomeInput').value || 0;
+        const fixedInput = document.getElementById('fixedIncomeInput');
+        const fixed = fixedInput ? fixedInput.value || 0 : 0;
+        
         const summary = module.currentData.analyzer.getSummary(
           module.currentData.prices,
           Number(fixed),
