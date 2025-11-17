@@ -12,6 +12,7 @@ import rendaFixaRouter from './src/routes/rendaFixa.js';
 import summaryRouter from './src/routes/summary.js';
 import backupRouter from './src/routes/backup.js';
 import authRouter from './src/routes/auth.js';
+import { authMiddleware } from './src/middleware/auth.js';
 import { initAdminUser } from './src/config/initUser.js';
 
 dotenv.config();
@@ -32,15 +33,10 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '..')));
 
-// Rotas
+// Rotas públicas (sem autenticação)
 app.use('/api/auth', authRouter);
-app.use('/api/transactions', transactionsRouter);
-app.use('/api/proventos', proventosRouter);
-app.use('/api/renda-fixa', rendaFixaRouter);
-app.use('/api/summary', summaryRouter);
-app.use('/api/backup', backupRouter);
 
-// Rota de health check
+// Rota de health check (pública)
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -48,6 +44,13 @@ app.get('/api/health', (req, res) => {
     database: sequelize.options.storage
   });
 });
+
+// ========== ROTAS PROTEGIDAS (requer autenticação) ==========
+app.use('/api/transactions', authMiddleware, transactionsRouter);
+app.use('/api/proventos', authMiddleware, proventosRouter);
+app.use('/api/renda-fixa', authMiddleware, rendaFixaRouter);
+app.use('/api/summary', authMiddleware, summaryRouter);
+app.use('/api/backup', authMiddleware, backupRouter);
 
 // Tratamento de erros
 app.use((err, req, res, next) => {

@@ -33,9 +33,14 @@ export function setUseApi(value) {
 
 async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
+  
+  // Pega o token do localStorage
+  const token = localStorage.getItem('token');
+  
   const config = {
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options.headers
     },
     ...options
