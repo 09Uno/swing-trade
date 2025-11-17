@@ -30,7 +30,7 @@ const RendaFixa = sequelize.define('RendaFixa', {
     comment: 'Taxa de retorno (% do CDI, Selic, ou % a.a.)'
   },
   indexador: {
-    type: DataTypes.ENUM('CDI', 'SELIC', 'IPCA', null),
+    type: DataTypes.ENUM('CDI', 'SELIC', 'IPCA', 'PREFIXADO'),
     allowNull: true,
     comment: 'Indexador do investimento'
   },
