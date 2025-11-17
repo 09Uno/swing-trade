@@ -4,7 +4,7 @@ import { ProventosManager } from '../models/ProventosManager.js';
 import { renderProventos } from '../ui/proventos.js';
 import { formatCurrency } from '../utils/formatters.js';
 import { showStatus } from '../utils/helpers.js';
-import { salvarProvento as salvarProventoAPI } from '../utils/dataSync.js';
+import { salvarProvento as salvarProventoAPI, atualizarProvento, excluirProvento as excluirProventoAPI } from '../utils/dataSync.js';
 
 // Inicializa manager
 export const proventosManager = new ProventosManager();
@@ -76,16 +76,16 @@ export async function salvarProvento(event) {
   };
 
   try {
-    // Salva na API/Banco
-    await salvarProventoAPI(dados);
-    
-    // Atualiza manager local
     if (id) {
-      // Edita
+      // Edita na API/Banco
+      await atualizarProvento(parseInt(id), dados);
+      // Atualiza manager local
       proventosManager.editarProvento(parseInt(id), dados);
       showStatus('✅ Provento atualizado com sucesso!', 'success');
     } else {
-      // Cria
+      // Cria na API/Banco
+      await salvarProventoAPI(dados);
+      // Atualiza manager local
       proventosManager.adicionarProvento(dados);
       showStatus('✅ Provento adicionado com sucesso!', 'success');
     }
@@ -115,9 +115,16 @@ export async function excluirProventoConfirm(id) {
   });
 
   if (confirmed) {
-    proventosManager.excluirProvento(id);
-    showStatus('✅ Provento excluído com sucesso!', 'success');
-    atualizarListaProventos();
+    try {
+      // Exclui da API/Banco
+      await excluirProventoAPI(id);
+      // Exclui do manager local
+      proventosManager.excluirProvento(id);
+      showStatus('✅ Provento excluído com sucesso!', 'success');
+      atualizarListaProventos();
+    } catch (error) {
+      showStatus('❌ Erro ao excluir provento: ' + error.message, 'error');
+    }
   }
 }
 

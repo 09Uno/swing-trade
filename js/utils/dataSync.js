@@ -266,6 +266,46 @@ export async function getRendaFixa() {
   }
 }
 
+export async function atualizarRendaFixa(id, dados) {
+  try {
+    if (useApi) {
+      return await rendaFixaApi.update(id, dados);
+    } else {
+      const investimentos = getRendaFixaLocal();
+      const index = investimentos.findIndex(i => i.id === id);
+      if (index !== -1) {
+        investimentos[index] = { ...investimentos[index], ...dados };
+        localStorage.setItem(STORAGE_KEYS.rendaFixa, JSON.stringify(investimentos));
+        return investimentos[index];
+      }
+      throw new Error('Investimento não encontrado');
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar renda fixa:', error);
+    throw error;
+  }
+}
+
+export async function excluirRendaFixa(id) {
+  try {
+    if (useApi) {
+      return await rendaFixaApi.delete(id);
+    } else {
+      const investimentos = getRendaFixaLocal();
+      const filtered = investimentos.filter(i => i.id !== id);
+      localStorage.setItem(STORAGE_KEYS.rendaFixa, JSON.stringify(filtered));
+      return { success: true };
+    }
+  } catch (error) {
+    console.error('Erro ao excluir renda fixa:', error);
+    // Fallback localStorage
+    const investimentos = getRendaFixaLocal();
+    const filtered = investimentos.filter(i => i.id !== id);
+    localStorage.setItem(STORAGE_KEYS.rendaFixa, JSON.stringify(filtered));
+    return { success: true };
+  }
+}
+
 function getRendaFixaLocal() {
   const stored = localStorage.getItem(STORAGE_KEYS.rendaFixa);
   return stored ? JSON.parse(stored) : [];

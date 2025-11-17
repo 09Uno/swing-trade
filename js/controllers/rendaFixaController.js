@@ -3,7 +3,7 @@
 import { showStatus } from '../utils/helpers.js';
 import { RendaFixaManager } from '../models/RendaFixaManager.js';
 import { renderRendaFixa } from '../ui/rendaFixa.js';
-import { salvarRendaFixa as salvarRendaFixaAPI } from '../utils/dataSync.js';
+import { salvarRendaFixa as salvarRendaFixaAPI, atualizarRendaFixa, excluirRendaFixa as excluirRendaFixaAPI } from '../utils/dataSync.js';
 
 // Inicializa o manager globalmente
 export const rendaFixaManager = new RendaFixaManager();
@@ -127,14 +127,16 @@ export async function salvarRendaFixa(event) {
   }
 
   try {
-    // Salva na API/Banco
-    await salvarRendaFixaAPI(dados);
-    
-    // Atualiza manager local
     if (editingId) {
+      // Atualiza na API/Banco
+      await atualizarRendaFixa(editingId, dados);
+      // Atualiza manager local
       rendaFixaManager.editarInvestimento(editingId, dados);
       showStatus('Investimento atualizado com sucesso!', 'success');
     } else {
+      // Salva na API/Banco
+      await salvarRendaFixaAPI(dados);
+      // Atualiza manager local
       rendaFixaManager.adicionarInvestimento(dados);
       showStatus('Investimento adicionado com sucesso!', 'success');
     }
@@ -184,6 +186,9 @@ export async function excluirRendaFixa(id) {
   }
 
   try {
+    // Exclui da API/Banco
+    await excluirRendaFixaAPI(id);
+    // Exclui do manager local
     rendaFixaManager.excluirInvestimento(id);
     showStatus('Investimento excluído com sucesso!', 'success');
 
