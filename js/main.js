@@ -1,6 +1,6 @@
 // ========== PONTO DE ENTRADA PRINCIPAL ==========
 
-import { switchTab, showStatus } from './utils/helpers.js';
+import { switchTab, showStatus, limparLocalStorage } from './utils/helpers.js';
 import { loadExcel, updateRealTimePrices, updateFixedIncome, currentData } from './data/dataLoader.js';
 import { filterCurrentAssets, filterAllAssets } from './ui/tables.js';
 import { proventosManager, initProventos } from './controllers/proventosController.js';
@@ -22,6 +22,7 @@ window.filterRendaFixa = filterRendaFixa;
 window.initProventos = initProventos;
 window.initRendaFixa = initRendaFixa;
 window.isUsingApi = isUsingApi;
+window.limparLocalStorage = limparLocalStorage;
 
 // Inicialização
 window.addEventListener('load', async ()=>{
