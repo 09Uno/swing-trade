@@ -156,6 +156,3 @@ export async function limparLocalStorage() {
   }
 }
 
-// Expõe globalmente
-window.limparLocalStorage = limparLocalStorage;
-
