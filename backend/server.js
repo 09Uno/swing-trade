@@ -63,10 +63,11 @@ async function startServer() {
   try {
     // Testa conexão com banco
     await sequelize.authenticate();
-    console.log('✅ Conectado ao SQLite');
+    console.log('✅ Conectado ao banco de dados');
 
-    // Sincroniza models (cria tabelas se não existirem)
-    await sequelize.sync({ alter: true });
+    // Sincroniza models - no PostgreSQL não usa alter (causa problemas)
+    const isPostgres = process.env.DATABASE_URL ? true : false;
+    await sequelize.sync({ alter: !isPostgres });
     console.log('✅ Tabelas sincronizadas');
 
     // Inicializa usuário administrador
