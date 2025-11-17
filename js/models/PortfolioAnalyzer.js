@@ -281,11 +281,11 @@ export class PortfolioAnalyzer{
     const rendaFixaManager = window.rendaFixaManager || null;
     const totalRendaFixa = rendaFixaManager ? rendaFixaManager.getValorTotal() : 0;
 
-    // Patrimônio Total = Valor Atual dos Ativos + Caixa + Proventos + Renda Fixa
-    const total=cur+fixed+totalProventos+totalRendaFixa;
+    // Patrimônio Total = Valor Atual dos Ativos + Caixa + Renda Fixa (SEM proventos)
+    const total=cur+fixed+totalRendaFixa;
 
-    // Resultado Total = Patrimônio Total - Total Investido + Lucro Realizado
-    const profit=total-inv+real;
+    // Resultado Total = Patrimônio Total - Total Investido + Lucro Realizado + Proventos
+    const profit=total-inv+real+totalProventos;
     const perc=inv>0?(profit/inv)*100:0;
 
     // Calcula estatísticas dos trades

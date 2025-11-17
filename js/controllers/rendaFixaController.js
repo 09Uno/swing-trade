@@ -3,6 +3,7 @@
 import { showStatus } from '../utils/helpers.js';
 import { RendaFixaManager } from '../models/RendaFixaManager.js';
 import { renderRendaFixa } from '../ui/rendaFixa.js';
+import { salvarRendaFixa as salvarRendaFixaAPI } from '../utils/dataSync.js';
 
 // Inicializa o manager globalmente
 export const rendaFixaManager = new RendaFixaManager();
@@ -93,7 +94,7 @@ export function editarRendaFixa(id) {
   modal.style.display = 'block';
 }
 
-export function salvarRendaFixa(event) {
+export async function salvarRendaFixa(event) {
   if (event) event.preventDefault();
 
   const form = document.getElementById('formRendaFixa');
@@ -122,10 +123,14 @@ export function salvarRendaFixa(event) {
   } else if (dados.tipo === 'Tesouro IPCA+') {
     dados.indexador = 'IPCA';
   } else if (dados.tipo === 'Tesouro Prefixado') {
-    dados.indexador = null;
+    dados.indexador = 'PREFIXADO';
   }
 
   try {
+    // Salva na API/Banco
+    await salvarRendaFixaAPI(dados);
+    
+    // Atualiza manager local
     if (editingId) {
       rendaFixaManager.editarInvestimento(editingId, dados);
       showStatus('Investimento atualizado com sucesso!', 'success');
