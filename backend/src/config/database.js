@@ -38,6 +38,16 @@ if (DATABASE_URL) {
       min: 0,
       acquire: 30000,
       idle: 10000
+    },
+    // Força usar IPv4
+    host: 'db.opzfvkyxwvheorklalma.supabase.co',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      },
+      // Força IPv4
+      family: 4
     }
   });
 } else {
