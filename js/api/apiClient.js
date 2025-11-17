@@ -1,6 +1,6 @@
 // ========== API CLIENT - Comunicação com Backend ==========
 
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://swing-trade-backend.onrender.com/api';
 
 // Flag para usar API ou LocalStorage
 let USE_API = false;
