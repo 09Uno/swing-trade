@@ -15,7 +15,7 @@ const Provento = sequelize.define('Provento', {
     comment: 'Código do ativo (ex: PETR4, BBDC4)'
   },
   tipo: {
-    type: DataTypes.ENUM('Dividendo', 'JCP', 'Rendimento'),
+    type: DataTypes.ENUM('Dividendo', 'JCP', 'Rendimento', 'Restituição de Capital'),
     allowNull: false,
     comment: 'Tipo de provento'
   },
