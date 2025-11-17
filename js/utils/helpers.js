@@ -120,3 +120,42 @@ export function parsePrice(val){
   return Number(val);
 }
 
+// ========== LIMPAR LOCALSTORAGE ==========
+export async function limparLocalStorage() {
+  const confirmacao = await customConfirm({
+    title: '🗑️ Limpar Cache Local',
+    message: 'Isso vai remover TODOS os dados salvos no navegador (localStorage). Os dados no banco de dados PostgreSQL serão mantidos. Deseja continuar?',
+    type: 'danger'
+  });
+
+  if (!confirmacao) {
+    return;
+  }
+
+  try {
+    // Remove todas as chaves do localStorage
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+
+    showStatus('✅ Cache local limpo com sucesso! Recarregando página...', 'success');
+    
+    // Recarrega a página após 2 segundos
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  } catch (error) {
+    console.error('Erro ao limpar localStorage:', error);
+    showStatus('❌ Erro ao limpar cache: ' + error.message, 'error');
+  }
+}
+
+// Expõe globalmente
+window.limparLocalStorage = limparLocalStorage;
+
