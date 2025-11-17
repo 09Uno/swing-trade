@@ -1,6 +1,6 @@
 // ========== API CLIENT - Comunicação com Backend ==========
 
-const API_URL = 'https://swing-trade-backend.onrender.com/api';
+import { API_URL } from '../config.js';
 
 // Flag para usar API ou LocalStorage
 let USE_API = false;
