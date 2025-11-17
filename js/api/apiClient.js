@@ -34,8 +34,8 @@ export function setUseApi(value) {
 async function request(endpoint, options = {}) {
   const url = `${API_URL}${endpoint}`;
   
-  // Pega o token do localStorage
-  const token = localStorage.getItem('token');
+  // Pega o token do localStorage (salvo como 'authToken' no login)
+  const token = localStorage.getItem('authToken');
   
   const config = {
     headers: {
