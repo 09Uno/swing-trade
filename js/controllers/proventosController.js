@@ -271,12 +271,20 @@ window.limparFiltrosProventos = () => {
 };
 
 // Inicializa lista ao carregar dados
-export function initProventos() {
+export async function initProventos() {
   // Verifica se a aba de proventos existe antes de renderizar
   const proventosBody = document.getElementById('proventosBody');
   if (!proventosBody) return;
 
-  const proventos = proventosManager.getProventos();
+  // Carrega da API/LocalStorage
+  const { getProventos } = await import('../utils/dataSync.js');
+  const proventosAPI = await getProventos();
+  
+  console.log('📊 Carregados', proventosAPI.length, 'proventos da API/Storage');
+  
+  // Atualiza o manager com os dados da API
+  proventosManager.proventos = proventosAPI;
+  
   // Sempre renderiza, mesmo que vazio
-  renderProventos(proventos, proventosManager);
+  renderProventos(proventosAPI, proventosManager);
 }

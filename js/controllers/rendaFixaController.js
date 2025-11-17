@@ -13,7 +13,7 @@ window.rendaFixaManager = rendaFixaManager;
 
 let editingId = null;
 
-export function initRendaFixa() {
+export async function initRendaFixa() {
   console.log('[RENDA FIXA INIT] Iniciando...');
   
   const rendaFixaBody = document.getElementById('rendaFixaBody');
@@ -21,11 +21,17 @@ export function initRendaFixa() {
   
   if (!rendaFixaBody) return;
 
-  const investimentos = rendaFixaManager.getInvestimentos();
-  console.log('[RENDA FIXA INIT] Encontrados', investimentos.length, 'investimentos');
+  // Carrega da API/LocalStorage
+  const { getRendaFixa } = await import('../utils/dataSync.js');
+  const investimentosAPI = await getRendaFixa();
+  
+  console.log('[RENDA FIXA INIT] Carregados', investimentosAPI.length, 'investimentos da API/Storage');
+  
+  // Atualiza o manager com os dados da API
+  rendaFixaManager.investimentos = investimentosAPI;
   
   // Sempre renderiza, mesmo que vazio
-  renderRendaFixa(investimentos, rendaFixaManager);
+  renderRendaFixa(investimentosAPI, rendaFixaManager);
 
   // Configura eventos dos filtros
   const tipoFilter = document.getElementById('filterRendaFixaTipo');
