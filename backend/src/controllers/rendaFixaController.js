@@ -40,7 +40,13 @@ export const getRendaFixaById = async (req, res) => {
 // Criar novo investimento
 export const createRendaFixa = async (req, res) => {
   try {
-    const investimento = await RendaFixa.create(req.body);
+    // Converte strings vazias em null
+    const dados = { ...req.body };
+    if (dados.dataVencimento === '') dados.dataVencimento = null;
+    if (dados.dataResgate === '') dados.dataResgate = null;
+    if (dados.observacoes === '') dados.observacoes = null;
+    
+    const investimento = await RendaFixa.create(dados);
     res.status(201).json(investimento);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -56,7 +62,13 @@ export const updateRendaFixa = async (req, res) => {
       return res.status(404).json({ error: 'Investimento não encontrado' });
     }
 
-    await investimento.update(req.body);
+    // Converte strings vazias em null
+    const dados = { ...req.body };
+    if (dados.dataVencimento === '') dados.dataVencimento = null;
+    if (dados.dataResgate === '') dados.dataResgate = null;
+    if (dados.observacoes === '') dados.observacoes = null;
+
+    await investimento.update(dados);
     res.json(investimento);
   } catch (error) {
     res.status(400).json({ error: error.message });

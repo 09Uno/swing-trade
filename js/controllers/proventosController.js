@@ -66,11 +66,15 @@ export async function salvarProvento(event) {
   event.preventDefault();
 
   const id = document.getElementById('proventoId').value;
+  const valorUnitario = parseFloat(document.getElementById('proventoValor').value);
+  const quantidade = parseFloat(document.getElementById('proventoQtd').value);
+  
   const dados = {
     ativo: document.getElementById('proventoAtivo').value,
     tipo: document.getElementById('proventoTipo').value,
-    valorUnitario: document.getElementById('proventoValor').value,
-    quantidade: document.getElementById('proventoQtd').value,
+    valorUnitario: valorUnitario,
+    quantidade: quantidade,
+    total: valorUnitario * quantidade,
     dataCom: document.getElementById('proventoDataCom').value,
     dataPagamento: document.getElementById('proventoDataPgto').value
   };
